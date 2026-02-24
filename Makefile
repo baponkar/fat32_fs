@@ -11,10 +11,15 @@ DISK_PATH = $(DISK_DIR)/disk.img
 
 TARGET = $(BUILD_DIR)/fat32_test
 
-SRC = $(SRC_DIR)/diskio.c \
-      $(SRC_DIR)/fat32.c \
-      $(SRC_DIR)/cluster_manager.c \
-      $(SRC_DIR)/main.c
+SRC = $(SRC_DIR)/cluster_manager.c \
+      $(SRC_DIR)/diskio.c \
+	  $(SRC_DIR)/fat.c \
+      $(SRC_DIR)/fat32_bpb.c \
+      $(SRC_DIR)/fat32_fsinfo.c \
+	  $(SRC_DIR)/fat32_mount.c \
+	  $(SRC_DIR)/fat32_utility.c \
+	  $(SRC_DIR)/fat32.c \
+	  $(SRC_DIR)/main.c
 
 # Object files will be placed in the build directory, mirroring the source structure
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC))

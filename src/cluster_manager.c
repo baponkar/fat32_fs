@@ -1,42 +1,55 @@
 #define _POSIX_C_SOURCE 200809L
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "../include/fat32_types.h"
+#include "../include/fat32_bpb.h"
+#include "../include/fat32_fsinfo.h"
+#include "../include/fat32_mount.h"
+#include "../include/fat32_utility.h"
+
 
 #include "../include/cluster_manager.h"
 
 
-
+#define SECTOR_SIZE 512
 
 extern uint64_t fat32_base_lba;             // Defined in fat32
 extern BPB *bpb;                            // Defined in fat32
 
 uint32_t fat32_cwd_cluster = 2;             // Current Working Directory Cluster
 
-/* 
-This variable is used to optimize free cluster search. 
-It keeps track of the last allocated cluster number. 
-When searching for a free cluster, the search starts 
-from this number instead of the beginning of the FAT. 
-This can significantly reduce allocation time, 
-especially on larger disks, as it avoids repeatedly 
-scanning the FAT from the start for every allocation. 
-It is updated whenever a new cluster is allocated, 
-ensuring that the next search for a free cluster 
-begins from the last allocated position, thus improving 
-performance by minimizing the number of FAT entries that 
-need to be checked for free clusters. This optimization is 
-particularly beneficial in scenarios where there are many 
-allocations and deallocations, as it helps to quickly find 
-free clusters without unnecessary scanning of the FAT, 
-leading to faster file creation and extension operations.
-*/
-static uint32_t fat32_free_cluster_no = 2;
+static uint32_t fat32_free_cluster_no = 2;  // Hint for next free cluster (starts from 2 as 0 and 1 are reserved)
 
-static bool fat32_read_sector(uint64_t lba, void *buf) {
-    return disk_read( fat32_base_lba + lba, 1, buf);
-}
 
-static bool fat32_write_sector(uint64_t lba, const void *buf) {
-    return disk_write(fat32_base_lba + lba, 1, (void*)buf);
+
+
+// --------------------------- Cluster Management Functions ---------------------------
+
+// This function writes zeros to all sectors of a given cluster
+bool fat32_zero_cluster(uint32_t cluster_no)
+{
+    uint32_t first_data_sector = bpb->BPB_RsvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz32); // start of data region in sectors
+
+    uint32_t first_sector = first_data_sector + (cluster_no - 2) * bpb->BPB_SecPerClus; // first sector of the given cluster
+
+    uint64_t lba = fat32_base_lba + first_sector;
+
+    uint32_t bytes = bpb->BPB_SecPerClus * SECTOR_SIZE;
+
+    uint8_t *zero = malloc(bytes);
+    if (!zero) return false;
+
+    memset(zero, 0, bytes);
+
+    bool ok = disk_write( lba, bpb->BPB_SecPerClus, zero);
+
+    free(zero);
+
+    return ok;
 }
 
 // read a single cluster and store it in given buffer.
@@ -115,6 +128,10 @@ static bool fat32_set_next_cluster( uint32_t current_cluster, uint32_t next_clus
     return true;
 }
 
+
+
+
+// --------------------------Cluster Chain Management Functions--------------------------
 static bool fat32_validate_cluster_chain( uint32_t start_cluster) {
     uint32_t curr = start_cluster;
 
@@ -475,7 +492,7 @@ bool fat32_set_volume_label( const char *label) {
 }
 
 
-
+// -------------------------- Directory Entry Management Functions -------------------------
 
 // This function creates a directory entry in the specified parent directory cluster with the given name, attributes, starting cluster, and file size.
 static bool fat32_create_dir_entry( uint32_t parent_cluster, const char *name, uint8_t attr, uint32_t first_cluster , uint32_t file_size) {
@@ -600,60 +617,7 @@ static bool fat32_dir_exists( uint32_t dir_cluster, const char *name) {
     return false;
 }
 
-bool fat32_mount( uint64_t partition_lba_start) {
-    fat32_base_lba = partition_lba_start;
 
-    uint8_t sector[512];
-
-    if(!disk_read( partition_lba_start, 1, sector)){
-        printf("FAT32: boot sector read failed\n");
-        return false;
-    }
-
-    if(!bpb){
-        bpb = malloc(sizeof(BPB));
-        if (!bpb) {
-            printf("FAT32: BPB alloc failed\n");
-            return false;
-        }
-    }
-    
-    memcpy(bpb, sector, sizeof(BPB));
-
-    /* Validate FAT32 */
-    if (bpb->BPB_BytsPerSec != 512) {
-        printf("FAT32: invalid sector size\n");
-        return false;
-    }
-
-    if (bpb->BPB_FATSz32 == 0) {
-        printf("FAT32: not FAT32\n");
-        return false;
-    }
-
-    if (bpb->BPB_NumFATs == 0) {
-        printf("FAT32: invalid FAT count\n");
-        return false;
-    }
-
-    if (bpb->BPB_SecPerClus == 0) {
-        printf("FAT32: invalid cluster size\n");
-        return false;
-    }
-
-    fat32_cwd_cluster = bpb->BPB_RootClus;
-
-
-    // printf("FAT32 mounted\n");
-    // printf("Bytes/sector: %u\n", bpb->BPB_BytsPerSec);
-    // printf("Sectors/cluster: %u\n", bpb->BPB_SecPerClus);
-    // printf("Reserved sectors: %u\n", bpb->BPB_RsvdSecCnt);
-    // printf("FAT size: %u\n", bpb->BPB_FATSz32);
-    // printf("Root cluster: %u\n", bpb->BPB_RootClus);
-    // printf("Total clusters: %u\n", get_total_clusters());
-
-    return true;
-}
 
 // This function searches for a directory entry with the specified name in the given directory cluster and returns its starting cluster if found.
 static bool fat32_find_dir( uint32_t dir_cluster, const char *name, uint32_t *out_cluster)
@@ -700,7 +664,7 @@ static bool fat32_find_dir( uint32_t dir_cluster, const char *name, uint32_t *ou
     return false;
 }
 
-
+// ---------------------------- File Management Functions ----------------------------
 // This function creates a new file with the specified name and content under the given parent directory cluster.
 static bool fat32_create_file_in_dir( uint32_t parent_cluster, const char *filename, const char *content, uint32_t size)
 {

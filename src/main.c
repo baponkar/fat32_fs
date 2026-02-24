@@ -3,7 +3,9 @@
 #include "../include/main.h"
 
 
+#define SECTOR_SIZE 512
 
+extern uint32_t fat32_base_lba;
 
 int main() {
 
