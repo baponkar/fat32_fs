@@ -46,3 +46,5 @@ Creating FAT32 Volume at LBA 0 with 204800 sectors
 [FAT32 TEST] File content: This is a test text string for testing fat32 filesystem.�
 FAT32 test passed successfully!
 ```
+
+© 2026 baponkar. All rights reserved.
