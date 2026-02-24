@@ -1,4 +1,4 @@
-![Badge](https://img.shields.io/badge/FAT32-FS-blue)
+[![Badge](https://img.shields.io/badge/FAT32-FS-blue)](https://github.com/baponkar/fat32_fs)
 
 
 # FAT32 Filesystem
