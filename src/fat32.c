@@ -20,8 +20,16 @@ BPB *bpb = NULL;
 extern bool disk_read(uint64_t lba, uint32_t count, void* buffer);
 extern bool disk_write(uint64_t lba, uint32_t count, const void* buffer);
 
-static bool fat32_read_sector(uint64_t lba, void *buf) {
-    return disk_read(lba, 1, buf);
+char *strdup(const char *s)
+{
+    if (!s) return NULL;
+
+    size_t len = strlen(s) + 1;
+    char *dup = malloc(len);
+    if (!dup) return NULL;
+
+    memcpy(dup, s, len);
+    return dup;
 }
 
 static bool fat32_write_sector(uint64_t lba, const void *buf) {

@@ -1,4 +1,5 @@
-
+#define _POSIX_C_SOURCE 200809L
+#include <string.h>
 
 #include "../include/cluster_manager.h"
 
@@ -496,7 +497,7 @@ static bool fat32_create_dir_entry( uint32_t parent_cluster, const char *name, u
     DirEntry *entry = (DirEntry *)(buf + entry_offset);
 
     memset(entry, 0, sizeof(DirEntry));
-    fat32_format_83_name(name, entry->DIR_Name);
+    fat32_format_83_name(name, (char *)entry->DIR_Name);
 
     entry->DIR_Attr = attr;
     entry->DIR_FstClusHI = (first_cluster >> 16) & 0xFFFF;
@@ -770,7 +771,7 @@ bool fat32_path_to_cluster( const char *path, uint32_t *out_cluster)
     if (!path || !out_cluster || !bpb)
         return false;
 
-    char *path_copy = strdup(path);
+    char *path_copy = (char *) strdup(path);
     if (!path_copy)
         return false;
 
@@ -783,7 +784,6 @@ bool fat32_path_to_cluster( const char *path, uint32_t *out_cluster)
         cluster = fat32_cwd_cluster;
     }
 
-    char *saveptr;
 
     char *token = strtok(path_copy, "/");
 
@@ -872,8 +872,8 @@ bool fat32_mkdir( const char* dirpath) {
 
 static bool fat32_find_file(  uint32_t dir_cluster, const char *name, DirEntry *out_entry, uint32_t *entry_cluster, uint32_t *entry_offset)
 {
-    uint32_t cluster_size = bpb->BPB_BytsPerSec * bpb->BPB_SecPerClus;
-    
+    uint32_t cluster_count = fat32_count_cluster_chain( dir_cluster);
+    uint32_t cluster_size = bpb->BPB_BytsPerSec * bpb->BPB_SecPerClus * cluster_count;
 
     uint8_t *buf = malloc(cluster_size);
     if (!buf) return false;
@@ -957,36 +957,61 @@ bool fat32_open( const char *path, FAT32_FILE *file)
 
 
 
-uint32_t fat32_read( FAT32_FILE *file, void *buffer, uint32_t size)
+uint32_t fat32_read(FAT32_FILE *file, void *buffer, uint32_t size)
 {
-    if(!file || !buffer){
+    if (!file || !buffer)
         return 0;
-    }
 
-    if(file->first_cluster == 0){
-        printf("file->first_cluster:%d\n", file->first_cluster);
+    if (file->pos >= file->size)
         return 0;
-    }
-        
-
-    if(file->pos >= file->size){
-        printf("file->pos: %d, file->size: %d\n", file->pos, file->size);
-        return 0;
-    }
-       
 
     uint32_t remaining = file->size - file->pos;
-    if(size > remaining){
+    if (size > remaining)
         size = remaining;
-    }
-        
-    if(!fat32_read_cluster_chain( file->first_cluster, buffer, size)){
-        return 0;
-    }
-        
-    file->pos += size;
 
-    return size;
+    uint32_t cluster_size = get_cluster_size_bytes();
+    uint8_t *cluster_buf = malloc(cluster_size);
+    if (!cluster_buf)
+        return 0;
+
+    uint32_t current = file->first_cluster;
+    uint32_t bytes_read = 0;
+    uint32_t file_offset = file->pos;
+
+    // Skip clusters until reaching correct offset
+    while (file_offset >= cluster_size && is_valid_cluster(current)) {
+        file_offset -= cluster_size;
+        current = fat32_get_next_cluster(current);
+    }
+
+    while (bytes_read < size && is_valid_cluster(current)) {
+
+        if (!fat32_read_cluster(current, cluster_buf)) {
+            free(cluster_buf);
+            return 0;
+        }
+
+        uint32_t copy_start = file_offset;
+        uint32_t copy_bytes = cluster_size - copy_start;
+
+        if (copy_bytes > (size - bytes_read))
+            copy_bytes = size - bytes_read;
+
+        memcpy(
+            (uint8_t*)buffer + bytes_read,
+            cluster_buf + copy_start,
+            copy_bytes
+        );
+
+        bytes_read += copy_bytes;
+        file_offset = 0;
+        current = fat32_get_next_cluster(current);
+    }
+
+    file->pos += bytes_read;
+    free(cluster_buf);
+
+    return bytes_read;
 }
 
 
@@ -1034,13 +1059,11 @@ bool fat32_mkdir_root( const char *name) {
 bool fat32_test( uint64_t fat_base_lba){
 
     if(!fat32_mount( fat_base_lba)){
-        printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %d!\n", fat_base_lba);
+        printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %ld!\n", fat_base_lba);
         return false;
     }
     printf("[FAT32 TEST] Successfully Mount Disk.\n");
     
-
-    uint32_t root_cluster = bpb->BPB_RootClus;
     
     // Crating a directory at root
     char *dir_path = "TESTDIR";

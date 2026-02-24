@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "../include/diskio.h"
 #include "../include/fat32.h"
@@ -29,7 +30,7 @@
 
 
 typedef struct __attribute__((packed)) {
-    char DIR_Name[11];          // Offset 0 : Directory name in 8.3 format
+    uint8_t DIR_Name[11];          // Offset 0 : Directory name in 8.3 format
     uint8_t DIR_Attr;           // Offset 11 : Directory attributes    
     uint8_t DIR_NTRes;          // Offset 12 : Reserved for Windows NT (should be zero)
     uint8_t DIR_CrtTimeTenth;   // Offset 13 : Creation time in tenths of a second
