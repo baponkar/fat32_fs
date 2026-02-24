@@ -8,6 +8,7 @@ TARGET = $(BUILD_DIR)/fat32_test
 
 SRC = $(SRC_DIR)/diskio.c \
       $(SRC_DIR)/fat32.c \
+	  $(SRC_DIR)/cluster_manager.c \
       $(SRC_DIR)/main.c
 
 # Strip src/ when generating object names
