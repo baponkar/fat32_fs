@@ -5,7 +5,7 @@
 
 #include "../include/diskio.h"
 
-#include "guid.h"
+#include "../include/guid.h"
 
 
 

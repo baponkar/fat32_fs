@@ -6,11 +6,11 @@
 
 #include "../include/diskio.h"
 
-#include "guid.h"
-#include "mbr.h"
-#include "gpt.h"
+#include "../include/guid.h"
+#include "../include/mbr.h"
+#include "../include/gpt.h"
 
-#include "partition_manager.h"
+#include "../include/partition_manager.h"
 
 
 
@@ -110,3 +110,96 @@ bool create_partition(uint8_t pdrv_no, uint64_t start_lba, uint64_t sectors, gui
 
 
 
+bool update_partition(
+    size_t partition_index,
+    uint64_t new_start_lba,
+    uint64_t new_sectors,
+    const char* new_name,
+    uint64_t new_attributes)
+{
+    if (partition_index >= GPT_ENTRIES_COUNT) {
+        printf("[PARTITION] Invalid partition index!\n");
+        return false;
+    }
+
+    // 1️⃣ Read existing GPT partition entries
+    GPTPartitionEntry gpt_partitions[GPT_ENTRIES_COUNT];
+    memset(gpt_partitions, 0, sizeof(gpt_partitions));
+
+    uint32_t total_entries_sectors =
+        (sizeof(GPTPartitionEntry) * GPT_ENTRIES_COUNT + SECTOR_SIZE - 1)
+        / SECTOR_SIZE;
+
+    if (!disk_read(GPT_ENTRIES_START_LBA,
+                   total_entries_sectors,
+                   gpt_partitions)) {
+        printf("[PARTITION] Failed to read GPT entries!\n");
+        return false;
+    }
+
+    GPTPartitionEntry *entry = &gpt_partitions[partition_index];
+
+    // Check if entry is actually used
+    bool empty = true;
+    for (int i = 0; i < 16; i++) {
+        if (entry->type_guid[i] != 0) {
+            empty = false;
+            break;
+        }
+    }
+
+    if (empty) {
+        printf("[PARTITION] Partition slot is empty!\n");
+        return false;
+    }
+
+    // 2️⃣ Update fields
+    entry->start_lba = new_start_lba;
+    entry->end_lba   = new_start_lba + new_sectors - 1;
+    entry->attributes = new_attributes;
+
+    // Clear old name
+    memset(entry->name, 0, sizeof(entry->name));
+
+    // Write new UTF-16LE name
+    for (size_t i = 0; i < 36 && new_name[i] != '\0'; i++) {
+        entry->name[i * 2] = new_name[i];
+    }
+
+    // 3️⃣ Rewrite PRIMARY partition entry array
+    if (!disk_write(GPT_ENTRIES_START_LBA,
+                    total_entries_sectors,
+                    gpt_partitions)) {
+        printf("[PARTITION] Failed to write primary GPT entries!\n");
+        return false;
+    }
+
+    // 4️⃣ Rewrite BACKUP partition entry array
+    uint64_t backup_entries_lba =
+        TOTAL_SECTORS - total_entries_sectors - 1;
+
+    if (!disk_write(backup_entries_lba,
+                    total_entries_sectors,
+                    gpt_partitions)) {
+        printf("[PARTITION] Failed to write backup GPT entries!\n");
+        return false;
+    }
+
+    // 5️⃣ Recreate GPT headers (recalculate CRC)
+    GPTHeader primary_header;
+    GPTHeader backup_header;
+
+    if (!create_gpt_header(TOTAL_SECTORS,
+                           &primary_header,
+                           &backup_header,
+                           DISK_GUID_EXAMPLE,
+                           gpt_partitions)) {
+        printf("[PARTITION] Failed to update GPT headers!\n");
+        return false;
+    }
+
+    printf("[PARTITION] Partition %lu updated successfully.\n",
+           partition_index);
+
+    return true;
+}

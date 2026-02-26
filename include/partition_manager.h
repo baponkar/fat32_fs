@@ -31,7 +31,7 @@ typedef struct __attribute__((packed)){
 bool create_partition(uint8_t pdrv_no, uint64_t start_lba, uint64_t sectors, guid_t partition_guid, guid_t partition_type_guid, char* name);
 
 
-
+bool update_partition(size_t partition_index, uint64_t new_start_lba, uint64_t new_sectors, const char* new_name,  uint64_t new_attributes);
 
 
 

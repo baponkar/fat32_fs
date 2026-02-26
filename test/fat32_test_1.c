@@ -1,11 +1,13 @@
+
+
 #include  <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../include/fat32.h"
 
-#include "../src/guid.h"
-#include "../src/gpt.h"
+#include "../include/guid.h"
+#include "../include/gpt.h"
 
 #include "../test/fat32_test_1.h"
 
@@ -92,8 +94,6 @@ bool fat32_test( uint64_t fat_base_lba){
     printf("[FAT32 TEST] File content: %s\n", buffer);
 
     free(buffer);
-
-
 
     return true;
 }
