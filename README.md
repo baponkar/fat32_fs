@@ -1,5 +1,6 @@
 [![Badge](https://img.shields.io/badge/FAT32-FS-blue)](https://github.com/baponkar/fat32_fs)
 
+![FAT32 FILESYSTEM IMAGE](./social_image.png)
 
 # FAT32 Filesystem
 
@@ -71,7 +72,7 @@ FAT32 mounted
 FAT32 test passed successfully!
 ```
 
-Test Disk Content
+Check the Disk and test Disk Content
 ```bash
 bapon@linuxos:/home$ sudo losetup -fP --show disk_img/disk.img # Setup a loop device
 /dev/loop1
