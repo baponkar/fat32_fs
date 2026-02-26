@@ -17,7 +17,7 @@ int main() {
     // printf("Disk I/O test passed successfully!\n");
 
 
-    if (!fat32_test(2048)) {
+    if (!fat32_test()) {
         printf("FAT32 test failed\n");
         return 1;
     }

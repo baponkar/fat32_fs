@@ -5,5 +5,5 @@
 #include <stddef.h>
 
 
-bool fat32_test( uint64_t fat_base_lba);
+bool fat32_test();
 

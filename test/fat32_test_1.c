@@ -11,39 +11,49 @@
 
 #include "../test/fat32_test_1.h"
 
+#define PDRV_NO 0
 
 #define SECTOR_SIZE 512
 
+#define TOTAL_SECTORS 1 * 1024 * 1024 * 1024 / SECTOR_SIZE  // 1 GB
+
+#define PARTITION_1_START_LBA 2048
+#define PARTITION_1_TOTAL_LBA 100 * 1024 * 1024 / SECTOR_SIZE    // 100 MB
+#define PARTITION_1_NAME "BOOT PARTITION"
+
+#define PARTITION_2_START_LBA PARTITION_1_START_LBA + PARTITION_1_TOTAL_LBA // Next to Partition 1
+#define PARTITION_2_TOTAL_LBA TOTAL_SECTORS - PARTITION_1_START_LBA - PARTITION_1_TOTAL_LBA - 2048 // Rest of Disk Space, 2048 for safety
+#define PARTITION_2_NAME "DATA PARTITION"
+
+
 
 // Testing 8.3 Filename FAT32 Test
-bool fat32_test( uint64_t fat_base_lba){
+bool fat32_test(){
 
-    uint32_t space_size_mb = 100; // 100 MB
-    uint32_t sectors = (space_size_mb * 1024 * 1024) / SECTOR_SIZE;
 
-    if(create_partition( 0, 2048, sectors, ESP_GUID, ESP_TYPE_GUID, "ESP Partition")){
-        printf("Successfully created Partition at Sector 2048\n");
+    if(create_partition(PDRV_NO, PARTITION_1_START_LBA, PARTITION_1_TOTAL_LBA, ESP_GUID, ESP_TYPE_GUID, PARTITION_1_NAME)){
+        printf("Successfully created Partition at Sector %ld\n", PARTITION_1_START_LBA);
     }
     
-    if(create_partition( 0, 2048 + sectors,sectors, DATA_PARTITION_GUID, LINUX_FS_GUID, "Data Partition")){
-        printf("Successfully created Partition at Sector %d\n",  2048 + sectors);
+    if(create_partition( PDRV_NO, PARTITION_2_START_LBA, PARTITION_2_TOTAL_LBA, DATA_PARTITION_GUID, LINUX_FS_GUID, PARTITION_2_NAME)){
+        printf("Successfully created Partition at Sector %ld\n",  PARTITION_2_START_LBA);
     }
 
 
-    if (!create_fat32_volume( 2048, sectors)) {
+    if (!create_fat32_volume( PARTITION_1_START_LBA, PARTITION_1_TOTAL_LBA)) {
         printf("Failed to create FAT32 volume\n");
         return 1;
     }
-    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", fat_base_lba, space_size_mb);
+    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", PARTITION_1_START_LBA, PARTITION_1_TOTAL_LBA);
 
-    if (!create_fat32_volume( 2048 + sectors, sectors)) {
+    if (!create_fat32_volume( PARTITION_2_START_LBA, PARTITION_2_TOTAL_LBA)) {
         printf("Failed to create FAT32 volume\n");
         return 1;
     }
-    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", fat_base_lba + sectors, space_size_mb);
+    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", PARTITION_1_START_LBA, PARTITION_2_TOTAL_LBA);
 
-    if(!fat32_mount(2048)){
-        printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %d!\n", 2048);
+    if(!fat32_mount(PARTITION_1_START_LBA)){
+        printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %d!\n", PARTITION_1_START_LBA);
         return false;
     }
     printf("[FAT32 TEST] Successfully Mount Disk.\n");
