@@ -73,19 +73,21 @@ FAT32 test passed successfully!
 
 Test Disk Content
 ```bash
-$ sudo losetup -fP --show disk_img/disk.img # Setup a loop device
+bapon@linuxos:/home$ sudo losetup -fP --show disk_img/disk.img # Setup a loop device
 /dev/loop1
-$ sudo fsck.fat -v -n /dev/loop0p1 # Check loop device
+bapon@linuxos:/home$ sudo fsck.fat -v -n /dev/loop0p1 # Check loop device
 fsck.fat 4.2 (2021-01-31)
 ...
 /dev/loop0p1: 2 files, 3/101590 clusters
-$ sudo mount /dev/loop0p1 disk_img/mnt # mount in disk_img/mnt
-$ ls -R disk_img/mnt # directory listing
+bapon@linuxos:/home$ sudo mount /dev/loop0p1 disk_img/mnt # mount in disk_img/mnt
+bapon@linuxos:/home$ ls -R disk_img/mnt # directory listing
 disk_img/mnt:
 mylongtestdir
 
 disk_img/mnt/mylongtestdir:
 mylongtestfile.text
+bapon@linuxos:/home$ cat disk_img/mnt/mylongtestdir/mylongtestfile.text
+This is a test text string for testing fat32 filesystem.bapon@linuxos:/home$
 ```
 
 © 2026 baponkar. All rights reserved.
