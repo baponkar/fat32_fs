@@ -23,3 +23,5 @@ bool fat32_write_sectors(uint64_t lba, uint32_t count, const void *buf) {
     return disk_write(lba, count, buf);
 }
 
+
+

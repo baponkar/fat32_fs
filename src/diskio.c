@@ -9,12 +9,12 @@ static int disk_fd = -1;
 
 char *disk_path = "disk_img/disk.img";
 
-bool disk_open(const char* path) {
+static bool disk_open(const char* path) {
     disk_fd = open(path, O_RDWR);
     return disk_fd >= 0;
 }
 
-void disk_close() {
+static void disk_close() {
     if (disk_fd >= 0)
         close(disk_fd);
 }

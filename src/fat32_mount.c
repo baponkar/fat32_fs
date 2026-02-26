@@ -11,7 +11,6 @@
 
 #include "../include/fat32_mount.h"
 
-#define SECTOR_SIZE 512
 
 uint32_t fat32_base_lba = 0;              // Base LBA of the FAT32 partition, set during mount or creation
 extern uint32_t fat32_cwd_cluster;             // Defined in cluster_manager
@@ -33,8 +32,7 @@ bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
         sectors_per_cluster = 4;    // 2KB clusters
     }
 
-    // 2. Create BPB
-    // create_bpb_fat32(uint32_t tot_sectors, uint8_t sector_size, uint8_t sectors_per_cluster, uint32_t start_sector);
+    // 2. Create BPB structure
     bpb = create_bpb_fat32(sectors, sectors_per_cluster, start_lba);
     if (!bpb) {
         printf("Failed to create BPB structure.\n");

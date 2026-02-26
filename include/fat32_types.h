@@ -36,13 +36,7 @@ typedef struct __attribute__((packed)) {
     uint32_t DIR_FileSize;      // Offset 28 : File size in bytes
 } DirEntry;                     // 32 bit or 4 bytes
 
-typedef struct {
-    uint32_t first_cluster;     // First Cluster number
-    uint32_t size;              // file size
-    uint32_t pos;               // pointer position
-    uint32_t parent_cluster;    // Parent Directory cluster
-    char name[11];              // 8.3 Name
-} FAT32_FILE;                   // 104 bytes
+
 
 
 

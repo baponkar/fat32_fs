@@ -22,7 +22,7 @@ extern BPB *bpb;                            // Defined in fat32
 
 uint32_t fat32_cwd_cluster = 2;             // Current Working Directory Cluster
 
-static uint32_t fat32_free_cluster_no = 2;  // Hint for next free cluster (starts from 2 as 0 and 1 are reserved)
+ uint32_t fat32_free_cluster_no = 2;  // Hint for next free cluster (starts from 2 as 0 and 1 are reserved)
 
 
 
@@ -45,7 +45,7 @@ bool fat32_zero_cluster(uint32_t cluster_no)
 
     memset(zero, 0, bytes);
 
-    bool ok = disk_write( lba, bpb->BPB_SecPerClus, zero);
+    bool ok = fat32_write_sectors( lba, bpb->BPB_SecPerClus, zero);
 
     free(zero);
 
@@ -53,7 +53,7 @@ bool fat32_zero_cluster(uint32_t cluster_no)
 }
 
 // read a single cluster and store it in given buffer.
-static bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
+bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
     uint32_t first_sector = get_first_sector_of_cluster(cluster_number);
     uint8_t *buf_ptr = (uint8_t *)buffer;
     
@@ -66,15 +66,15 @@ static bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
 }
 
 // write a single cluster from given buffer
-static bool fat32_write_cluster( uint32_t cluster_number, const void *buffer)
+ bool fat32_write_cluster( uint32_t cluster_number, const void *buffer)
 {
     uint32_t first_sector = get_first_sector_of_cluster(cluster_number);
 
-    return disk_write(fat32_base_lba + first_sector, bpb->BPB_SecPerClus, (void*)buffer );
+    return fat32_write_sectors( fat32_base_lba + first_sector, bpb->BPB_SecPerClus, buffer );
 }
 
 // Clearing a single cluster
-static bool fat32_clear_cluster( uint32_t cluster) {
+ bool fat32_clear_cluster( uint32_t cluster) {
     uint32_t cluster_size = bpb->BPB_BytsPerSec * bpb->BPB_SecPerClus;
     uint8_t *zero = malloc(cluster_size);
     if (!zero) return false;
@@ -85,7 +85,7 @@ static bool fat32_clear_cluster( uint32_t cluster) {
     return ok;
 }
 
-static uint32_t fat32_get_next_cluster( uint32_t current_cluster){
+ uint32_t fat32_get_next_cluster( uint32_t current_cluster){
     uint32_t fat_offset = current_cluster * 4; // Total bytes as Each FAT32 entry is 4 bytes
     uint32_t fat_sector_number = bpb->BPB_RsvdSecCnt + (fat_offset / bpb->BPB_BytsPerSec);
     uint32_t ent_offset = fat_offset % bpb->BPB_BytsPerSec; // Sector
@@ -101,7 +101,7 @@ static uint32_t fat32_get_next_cluster( uint32_t current_cluster){
     return next_cluster;
 }
 
-static bool fat32_set_next_cluster( uint32_t current_cluster, uint32_t next_cluster) {
+ bool fat32_set_next_cluster( uint32_t current_cluster, uint32_t next_cluster) {
     uint32_t fat_offset = current_cluster * 4;
     uint32_t fat_sector_relative = fat_offset / bpb->BPB_BytsPerSec;
     uint32_t ent_offset = fat_offset % bpb->BPB_BytsPerSec;
@@ -132,7 +132,7 @@ static bool fat32_set_next_cluster( uint32_t current_cluster, uint32_t next_clus
 
 
 // --------------------------Cluster Chain Management Functions--------------------------
-static bool fat32_validate_cluster_chain( uint32_t start_cluster) {
+ bool fat32_validate_cluster_chain( uint32_t start_cluster) {
     uint32_t curr = start_cluster;
 
     while (is_valid_cluster(curr)) {
@@ -145,7 +145,7 @@ static bool fat32_validate_cluster_chain( uint32_t start_cluster) {
     return false;
 }
 
-static bool fat32_free_cluster_chain( uint32_t start_cluster){
+ bool fat32_free_cluster_chain( uint32_t start_cluster){
     uint32_t current_cluster = start_cluster;
 
     while (is_valid_cluster(current_cluster)) {
@@ -172,7 +172,7 @@ static bool fat32_free_cluster_chain( uint32_t start_cluster){
 
 
 // Allocate a free cluster and return its number
-static bool fat32_allocate_cluster( uint32_t *allocated_cluster)
+ bool fat32_allocate_cluster( uint32_t *allocated_cluster)
 {
     uint32_t total_clusters = get_total_clusters();
 
@@ -202,7 +202,7 @@ static bool fat32_allocate_cluster( uint32_t *allocated_cluster)
     return false;
 }
 
-static bool fat32_allocate_cluster_chain( uint32_t count, uint32_t *first_cluster){
+ bool fat32_allocate_cluster_chain( uint32_t count, uint32_t *first_cluster){
     uint32_t prev_cluster = 0;
     *first_cluster = 0;
 
@@ -262,7 +262,7 @@ bool fat32_read_cluster_chain( uint32_t start_cluster, void *buffer, uint32_t ma
 }
 
 // writing cluster chain starting from given cluster
-static bool fat32_write_cluster_chain( const void *buffer, uint32_t size, uint32_t *first_cluster)
+ bool fat32_write_cluster_chain( const void *buffer, uint32_t size, uint32_t *first_cluster)
 {
     const uint8_t *buf = (const uint8_t *)buffer;
     uint32_t cluster_size = get_cluster_size_bytes();
@@ -322,7 +322,7 @@ static bool fat32_write_cluster_chain( const void *buffer, uint32_t size, uint32
 
 
 // Count the number of clusters in a chain starting from given cluster
-static uint32_t fat32_count_cluster_chain( uint32_t start_cluster) {
+ uint32_t fat32_count_cluster_chain( uint32_t start_cluster) {
     uint32_t count = 0;
     uint32_t curr = start_cluster;
 
@@ -338,7 +338,7 @@ static uint32_t fat32_count_cluster_chain( uint32_t start_cluster) {
     return count;
 }
 
-static bool fat32_append_cluster( uint32_t start_cluster, uint32_t *new_cluster) {
+ bool fat32_append_cluster( uint32_t start_cluster, uint32_t *new_cluster) {
     uint32_t curr = start_cluster;
 
     while (1) {
@@ -359,7 +359,7 @@ static bool fat32_append_cluster( uint32_t start_cluster, uint32_t *new_cluster)
 }
 
 // This function searches for a free directory entry in the specified directory cluster.
-static bool fat32_find_free_dir_entry( uint32_t dir_cluster, uint32_t *out_cluster, uint32_t *out_offset) {
+ bool fat32_find_free_dir_entry( uint32_t dir_cluster, uint32_t *out_cluster, uint32_t *out_offset) {
     uint32_t cluster_size = get_cluster_size_bytes();
     uint8_t *buf = (uint8_t *) malloc(cluster_size);
     if (!buf) return false;
@@ -406,7 +406,7 @@ static bool fat32_find_free_dir_entry( uint32_t dir_cluster, uint32_t *out_clust
 
 
 // This function converts a given filename into the 8.3 format used in FAT32 directory entries.
-static void fat32_format_83_name(const char *name, char out[11]) {
+ void fat32_format_83_name(const char *name, char out[11]) {
     memset(out, ' ', 11);
 
     int i = 0;  // Given string index
@@ -495,7 +495,7 @@ bool fat32_set_volume_label( const char *label) {
 // -------------------------- Directory Entry Management Functions -------------------------
 
 // This function creates a directory entry in the specified parent directory cluster with the given name, attributes, starting cluster, and file size.
-static bool fat32_create_dir_entry( uint32_t parent_cluster, const char *name, uint8_t attr, uint32_t first_cluster , uint32_t file_size) {
+ bool fat32_create_dir_entry( uint32_t parent_cluster, const char *name, uint8_t attr, uint32_t first_cluster , uint32_t file_size) {
     uint32_t entry_cluster, entry_offset;
 
     if (!fat32_find_free_dir_entry(  parent_cluster, &entry_cluster, &entry_offset)) {
@@ -527,7 +527,7 @@ static bool fat32_create_dir_entry( uint32_t parent_cluster, const char *name, u
 }
 
 // This function initializes a new directory cluster by creating the "." and ".." entries.
-static bool fat32_init_directory( uint32_t dir_cluster, uint32_t parent_cluster)
+ bool fat32_init_directory( uint32_t dir_cluster, uint32_t parent_cluster)
 {
     uint32_t cluster_size = get_cluster_size_bytes();
     uint8_t *buf = malloc(cluster_size);
@@ -564,7 +564,7 @@ static bool fat32_init_directory( uint32_t dir_cluster, uint32_t parent_cluster)
 }
 
 // This function creates a new directory with the specified name under the given parent directory cluster.
-static bool fat32_mkdir_internal( uint32_t parent_cluster, const char *name) {
+ bool fat32_mkdir_internal( uint32_t parent_cluster, const char *name) {
     uint32_t new_cluster;
 
     if (!fat32_allocate_cluster( &new_cluster))
@@ -580,7 +580,7 @@ static bool fat32_mkdir_internal( uint32_t parent_cluster, const char *name) {
     return fat32_create_dir_entry( parent_cluster, name, ATTR_DIRECTORY, new_cluster, 0 );
 }
 
-static bool fat32_dir_exists( uint32_t dir_cluster, const char *name) {
+ bool fat32_dir_exists( uint32_t dir_cluster, const char *name) {
     uint32_t cluster_size = get_cluster_size_bytes();
     uint8_t *buf = malloc(cluster_size);
     if (!buf) return false;
@@ -620,7 +620,7 @@ static bool fat32_dir_exists( uint32_t dir_cluster, const char *name) {
 
 
 // This function searches for a directory entry with the specified name in the given directory cluster and returns its starting cluster if found.
-static bool fat32_find_dir( uint32_t dir_cluster, const char *name, uint32_t *out_cluster)
+ bool fat32_find_dir( uint32_t dir_cluster, const char *name, uint32_t *out_cluster)
 {
     uint32_t cluster_size = bpb->BPB_BytsPerSec * bpb->BPB_SecPerClus;
 
@@ -666,7 +666,7 @@ static bool fat32_find_dir( uint32_t dir_cluster, const char *name, uint32_t *ou
 
 // ---------------------------- File Management Functions ----------------------------
 // This function creates a new file with the specified name and content under the given parent directory cluster.
-static bool fat32_create_file_in_dir( uint32_t parent_cluster, const char *filename, const char *content, uint32_t size)
+ bool fat32_create_file_in_dir( uint32_t parent_cluster, const char *filename, const char *content, uint32_t size)
 {
     uint32_t first_cluster = 0;
 
@@ -676,58 +676,7 @@ static bool fat32_create_file_in_dir( uint32_t parent_cluster, const char *filen
     return fat32_create_dir_entry( parent_cluster, filename, ATTR_ARCHIVE, first_cluster,  size);
 }
 
-// This function changes the current working directory to the specified path, which can be either absolute or relative.
-bool fat32_change_current_directory( const char *path)
-{
-    if (!path || !path[0])
-        return false;
 
-    uint32_t current;
-
-    /* absolute path */
-    if (path[0] == '/')
-        current = bpb->BPB_RootClus;
-    else
-        current = fat32_cwd_cluster;
-
-    /* root */
-    if (strcmp(path, "/") == 0) {
-        fat32_cwd_cluster = bpb->BPB_RootClus;
-        return true;
-    }
-
-    char tmp[256];
-    strcpy(tmp, path);
-
-    char *token = strtok(tmp, "/");
-
-    while (token) {
-
-        if (strcmp(token, ".") == 0) {
-            /* do nothing */
-        }
-        else if (strcmp(token, "..") == 0) {
-            /* read parent from ".." entry */
-            uint32_t parent;
-            if (fat32_find_dir( current, "..", &parent))
-                current = parent;
-        }
-        else {
-            uint32_t next;
-            if (!fat32_find_dir( current, token, &next)) {
-                printf("Directory not found: %s\n", token);
-                return false;
-            }
-            current = next;
-        }
-
-        token = strtok(NULL, "/");
-    }
-
-    fat32_cwd_cluster = current;
-
-    return true;
-}
 
 
 bool fat32_path_to_cluster( const char *path, uint32_t *out_cluster)
@@ -787,54 +736,9 @@ bool fat32_path_to_cluster( const char *path, uint32_t *out_cluster)
 
 
 
-bool fat32_mkdir( const char* dirpath) {
-    if (!dirpath || !bpb) return false;
 
-    char path_copy[256];
-    strncpy(path_copy, dirpath, sizeof(path_copy));
 
-    path_copy[sizeof(path_copy) - 1] = '\0';
-
-    // Remove trailing '/'
-    size_t len = strlen(path_copy);
-    if (len > 1 && path_copy[len - 1] == '/'){
-        path_copy[len - 1] = '\0';
-    }
-
-    char *last_slash = strrchr(path_copy, '/');
-
-    uint32_t parent_cluster;
-    char *dirname;
-
-    if (!last_slash) {
-        parent_cluster = fat32_cwd_cluster;
-        dirname = path_copy;
-    }
-    else if (last_slash == path_copy) {
-        // parent is root
-        parent_cluster = bpb->BPB_RootClus;
-        dirname = last_slash + 1;
-    }
-    else {
-        *last_slash = '\0';
-        dirname = last_slash + 1;
-
-        if (!fat32_path_to_cluster( path_copy, &parent_cluster))
-            return false;
-    }
-
-    if (strlen(dirname) == 0)
-        return false;
-
-    // already exists?
-    if (fat32_dir_exists( parent_cluster, dirname))
-        return false;
-
-    return fat32_mkdir_internal( parent_cluster, dirname);
-        
-}
-
-static bool fat32_find_file(  uint32_t dir_cluster, const char *name, DirEntry *out_entry, uint32_t *entry_cluster, uint32_t *entry_offset)
+ bool fat32_find_file(  uint32_t dir_cluster, const char *name, DirEntry *out_entry, uint32_t *entry_cluster, uint32_t *entry_offset)
 {
     uint32_t cluster_count = fat32_count_cluster_chain( dir_cluster);
     uint32_t cluster_size = bpb->BPB_BytsPerSec * bpb->BPB_SecPerClus * cluster_count;
@@ -875,129 +779,9 @@ static bool fat32_find_file(  uint32_t dir_cluster, const char *name, DirEntry *
     return false;
 }
 
-bool fat32_open( const char *path, FAT32_FILE *file)
-{
-    if (!file || !path)
-        return false;
-
-    char tmp[256];
-    strcpy(tmp, path);
-
-    char *last = strrchr(tmp, '/');
-
-    uint32_t parent_cluster;
-    char *filename;
-
-    if (!last) {
-        parent_cluster = fat32_cwd_cluster;
-        filename = tmp;
-    } else if (last == tmp) {
-        parent_cluster = bpb->BPB_RootClus;
-        filename = last + 1;
-    } else {
-        *last = '\0';
-        filename = last + 1;
-
-        if (!fat32_path_to_cluster( tmp, &parent_cluster)){
-            return false;
-        }  
-    }
-
-    DirEntry entry;
-    uint32_t ec, eo;
-
-    if (!fat32_find_file( parent_cluster, filename, &entry, &ec, &eo))
-        return false;
-
-    file->first_cluster = (entry.DIR_FstClusHI << 16) | entry.DIR_FstClusLO;
-
-    file->size = entry.DIR_FileSize;
-    file->pos = 0;
-    file->parent_cluster = parent_cluster;
-    memcpy(file->name, entry.DIR_Name, 11);
-
-    return true;
-}
 
 
 
-uint32_t fat32_read(FAT32_FILE *file, void *buffer, uint32_t size)
-{
-    if (!file || !buffer)
-        return 0;
-
-    if (file->pos >= file->size)
-        return 0;
-
-    uint32_t remaining = file->size - file->pos;
-    if (size > remaining)
-        size = remaining;
-
-    uint32_t cluster_size = get_cluster_size_bytes();
-    uint8_t *cluster_buf = malloc(cluster_size);
-    if (!cluster_buf)
-        return 0;
-
-    uint32_t current = file->first_cluster;
-    uint32_t bytes_read = 0;
-    uint32_t file_offset = file->pos;
-
-    // Skip clusters until reaching correct offset
-    while (file_offset >= cluster_size && is_valid_cluster(current)) {
-        file_offset -= cluster_size;
-        current = fat32_get_next_cluster(current);
-    }
-
-    while (bytes_read < size && is_valid_cluster(current)) {
-
-        if (!fat32_read_cluster(current, cluster_buf)) {
-            free(cluster_buf);
-            return 0;
-        }
-
-        uint32_t copy_start = file_offset;
-        uint32_t copy_bytes = cluster_size - copy_start;
-
-        if (copy_bytes > (size - bytes_read))
-            copy_bytes = size - bytes_read;
-
-        memcpy(
-            (uint8_t*)buffer + bytes_read,
-            cluster_buf + copy_start,
-            copy_bytes
-        );
-
-        bytes_read += copy_bytes;
-        file_offset = 0;
-        current = fat32_get_next_cluster(current);
-    }
-
-    file->pos += bytes_read;
-    free(cluster_buf);
-
-    return bytes_read;
-}
-
-
-
-uint32_t fat32_write( FAT32_FILE *file, const void *buffer, uint32_t size)
-{
-    if (!file || !buffer)
-        return 0;
-
-    fat32_free_cluster_chain( file->first_cluster);
-
-    uint32_t new_cluster;
-
-    if (!fat32_write_cluster_chain(  buffer, size,  &new_cluster))
-        return 0;
-
-    file->first_cluster = new_cluster;
-    file->size = size;
-    file->pos = size;
-
-    return size;
-}
 
 
 
@@ -1019,65 +803,6 @@ bool fat32_mkdir_root( const char *name) {
 
 
 
-// Testing 8.3 Filename FAT32 Test
-bool fat32_test( uint64_t fat_base_lba){
-
-    if(!fat32_mount( fat_base_lba)){
-        printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %ld!\n", fat_base_lba);
-        return false;
-    }
-    printf("[FAT32 TEST] Successfully Mount Disk.\n");
-    
-    
-    // Crating a directory at root
-    char *dir_path = "TESTDIR";
-    if(!fat32_mkdir( dir_path)){
-        printf("[FAT32 TEST] Creating Directory %s is failed!\n", dir_path);
-        return false;
-    }
-    printf("[FAT32 TEST] Creating Directory %s is success.\n", dir_path);
-
-    // Finding Directory Cluster no
-    uint32_t dir_cluster_no = 0;
-    if(!fat32_path_to_cluster( dir_path, &dir_cluster_no)){
-        printf("[FAT32 TEST] Failed to get Cluster no for %s", dir_path);
-        return false;
-    }
-    printf("[FAT32 TEST] Successfully get Cluster no %d for directory %s\n", dir_cluster_no, dir_path);
-
-    // Creating testfile.text
-    char *file_name = "TESTFILE.TXT";   // 8.3 Short Filename
-    char *buff = "This is a test text string for testing fat32 filesystem.";
-    uint32_t file_size = strlen(buff);
-
-    if(!fat32_create_file_in_dir( dir_cluster_no, file_name, buff, file_size)){
-        return false;
-    }
-    printf("[FAT32 TEST] Successfully created %s\n\n", file_name);
-
-    // Opening testfile.txt
-    const char *file_path = "TESTDIR/TESTFILE.TXT";
-    FAT32_FILE file;
-    if(!fat32_open( file_path, &file)){
-        printf("[FAT32 TEST] Faile to read file %s\n", file_path);
-        return false;
-    }
-    printf("[FAT32 TEST] Successfully open file %s\n", file_path);
-
-    // Reading testfile.txt 
-    char *buffer = (char *) malloc(file_size);
-    uint32_t rb = fat32_read( &file, buffer, file_size);
-    if(rb <= 0){
-        printf("[FAT32 TEST] Failed to read file %s!\n", file_path);
-        // return false;
-    }
-    printf("[FAT32 TEST] Successfully read %d bytes\n", rb);
-    printf("[FAT32 TEST] File content: %s\n", buffer);
-
-    free(buffer);
-
-    return true;
-}
 
 
 

@@ -1,5 +1,5 @@
 
-# Last edited: 2024-06-30
+# Last edited: 26-02-2026
 
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11
@@ -7,6 +7,7 @@ CFLAGS = -Wall -Wextra -std=c11
 BUILD_DIR = build
 SRC_DIR = src
 DISK_DIR = disk_img
+TEST_DIR = test
 DISK_PATH = $(DISK_DIR)/disk.img
 
 TARGET = $(BUILD_DIR)/fat32_test
@@ -19,6 +20,8 @@ SRC = $(SRC_DIR)/cluster_manager.c \
 	  $(SRC_DIR)/fat32_mount.c \
 	  $(SRC_DIR)/fat32_utility.c \
 	  $(SRC_DIR)/fat32.c \
+	  $(TEST_DIR)/diskio_test_1.c \
+	  $(TEST_DIR)/fat32_test_1.c \
 	  $(SRC_DIR)/main.c
 
 # Object files will be placed in the build directory, mirroring the source structure
@@ -46,14 +49,15 @@ disk:
 clean:
 	rm -rf $(BUILD_DIR)
 
-run: disk $(TARGET)
+test: disk $(TARGET)
 	./$(TARGET)
 
 help:
 	@echo "Usage:"
 	@echo "  make        - Build the project"
 	@echo "  make disk   - Create disk image if not present"
-	@echo "  make run    - Create disk (if needed) and run"
+	@echo "  make test   - Create disk (if needed) and run test"
 	@echo "  make clean  - Clean build directory"
+	@echo "  make help   - Show this help message"
 
 .PHONY: all disk clean run help
