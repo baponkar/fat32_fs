@@ -5,6 +5,11 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#define LONG_FILENAME_SIZE 256
+
+#define ATTR_LONG_NAME  0x0F
+#define LFN_LAST_LONG_ENTRY 0x40
+
 typedef struct __attribute__((packed)) {
     uint8_t  LDIR_Ord;
     uint16_t LDIR_Name1[5];

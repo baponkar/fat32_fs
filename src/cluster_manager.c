@@ -654,7 +654,7 @@ bool fat32_set_volume_label( const char *label) {
     char short_name[11];
     fat32_format_83_name(name, short_name);
 
-    char long_name[260];
+    char long_name[LONG_FILENAME_SIZE];
     memset(long_name, 0, sizeof(long_name));
 
     while (is_valid_cluster(curr)) {
@@ -867,7 +867,7 @@ bool fat32_path_to_cluster( const char *path, uint32_t *out_cluster)
     if (!buf) return false;
 
     uint32_t curr = dir_cluster;
-    char long_name[260];
+    char long_name[LONG_FILENAME_SIZE];
     memset(long_name, 0, sizeof(long_name));
 
     char short_name[11];
