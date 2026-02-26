@@ -22,7 +22,7 @@ SRC = $(SRC_DIR)/cluster_manager.c \
 	  $(SRC_DIR)/fat32.c \
 	  $(TEST_DIR)/diskio_test_1.c \
 	  $(TEST_DIR)/fat32_test_1.c \
-	  $(SRC_DIR)/main.c
+	  $(TEST_DIR)/main.c
 
 # Object files will be placed in the build directory, mirroring the source structure
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC))

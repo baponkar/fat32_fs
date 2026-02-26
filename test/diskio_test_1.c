@@ -8,10 +8,10 @@
 #include "diskio_test_1.h"
 
 
-bool diskio_test() {
+bool diskio_test(uint32_t lba) {
     uint8_t buffer[512];
     memset(buffer, 0, sizeof(buffer)); // Clear buffer before use
-    uint32_t sector = 0; // Test with the first sector
+    uint32_t sector = lba; // Test with the given LBA
 
     // ClearDisk for testing
     if (!disk_write(sector, 1, buffer)) {
@@ -45,6 +45,12 @@ bool diskio_test() {
         return false;
     }
     printf("Data verification succeeded after disk_write for sector %u\n", sector);
+
+    memset(buffer, 0, sizeof(buffer)); // Clear buffer before next test
+    if(!disk_write(sector, 1, buffer)) {
+        printf("disk_write failed\n");
+        return false;
+    }
 
     return true;
 }

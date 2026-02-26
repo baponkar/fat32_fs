@@ -98,18 +98,31 @@ bool fat32_mkdir( const char* dirpath) {
         *last_slash = '\0';
         dirname = last_slash + 1;
 
-        if (!fat32_path_to_cluster( path_copy, &parent_cluster))
-            return false;
+        if (!fat32_path_to_cluster( path_copy, &parent_cluster)){
+                printf("Parent directory not found: %s\n", path_copy);
+                return false;
+        }
     }
 
-    if (strlen(dirname) == 0)
+    if (strlen(dirname) == 0){
+        printf("Invalid directory name\n");
         return false;
+    }
+        
 
     // already exists?
-    if (fat32_dir_exists( parent_cluster, dirname))
+    if (fat32_dir_exists( parent_cluster, dirname)){
+        printf("Directory already exists: %s\n", dirname);
         return false;
+    }
+        
 
-    return fat32_mkdir_internal( parent_cluster, dirname);
+    bool ok = fat32_mkdir_internal( parent_cluster, dirname);
+    if (!ok) {
+        printf("Failed to create directory: %s\n", dirname);
+        return false;
+    }
+    return true;
         
 }
 

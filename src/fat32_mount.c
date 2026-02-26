@@ -12,15 +12,16 @@
 #include "../include/fat32_mount.h"
 
 
-uint32_t fat32_base_lba = 0;              // Base LBA of the FAT32 partition, set during mount or creation
-extern uint32_t fat32_cwd_cluster;             // Defined in cluster_manager
+uint32_t fat32_base_lba = 0;                // Base LBA of the FAT32 partition, set during mount or creation
+extern uint32_t fat32_cwd_cluster;          // Defined in cluster_manager.c
+extern BPB *bpb;                            // Defined in fat32_bpb.c
 
 // Main function to create FAT32 volume
 // This function create and write BPB, FSInfo, and initialize FAT tables
 bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
     printf("Creating FAT32 Volume at LBA %ld with %d sectors\n", start_lba, sectors);
 
-    fat32_base_lba = start_lba;
+    fat32_base_lba = start_lba; // Set the base LBA for future operations
 
     // 1. Determine sectors per cluster based on volume size
     uint8_t sectors_per_cluster =  16; // Default to 32 KB clusters
@@ -39,8 +40,6 @@ bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
         return false;
     }
 
-    
-
     // 3. Write Boot Sector into disk
     if (!fat32_write_sector(start_lba, bpb)) {
         printf("Failed to write Boot Sector.\n");
@@ -53,14 +52,13 @@ bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
         return false;
     }
     
-    
-
     // 4. Create FSInfo Sector
     FSInfo *fsinfo = create_fsinfo_sector(start_lba + 1);
     if (!fsinfo) {
         printf("Failed to create FSInfo structure.\n");
         return false;
     }
+
     // Write FSInfo Sector into disk
     if (!fat32_write_sector(start_lba + 1, fsinfo)) {
         printf("Failed to write FSInfo Sector.\n");
@@ -82,7 +80,6 @@ bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
         printf(" Done\n");
     }
 
-
     // Initialize root directory cluster
     uint8_t empty_cluster[512 * bpb->BPB_SecPerClus];
     memset(empty_cluster, 0, sizeof(empty_cluster));
@@ -94,12 +91,13 @@ bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
     return true;
 }
 
-bool fat32_mount( uint64_t partition_lba_start) {
-    fat32_base_lba = partition_lba_start;
+bool fat32_mount( uint64_t start_lba) {
+    fat32_base_lba = start_lba;
 
     uint8_t sector[512];
+    memset(sector, 0, sizeof(sector));
 
-    if(!fat32_read_sector( partition_lba_start, sector)){
+    if(!fat32_read_sector( start_lba, sector)){
         printf("FAT32: boot sector read failed\n");
         return false;
     }
@@ -111,12 +109,12 @@ bool fat32_mount( uint64_t partition_lba_start) {
             return false;
         }
     }
-    
-    memcpy(bpb, sector, sizeof(BPB));
+
+    memcpy(bpb, sector, sizeof(BPB));   // Copy the boot sector data into the BPB structure
 
     /* Validate FAT32 */
     if (bpb->BPB_BytsPerSec != 512) {
-        printf("FAT32: invalid sector size\n");
+        printf("FAT32: invalid sector size %d\n", bpb->BPB_BytsPerSec);
         return false;
     }
 
@@ -136,15 +134,15 @@ bool fat32_mount( uint64_t partition_lba_start) {
     }
 
     fat32_cwd_cluster = bpb->BPB_RootClus;
-
-
-    // printf("FAT32 mounted\n");
-    // printf("Bytes/sector: %u\n", bpb->BPB_BytsPerSec);
-    // printf("Sectors/cluster: %u\n", bpb->BPB_SecPerClus);
-    // printf("Reserved sectors: %u\n", bpb->BPB_RsvdSecCnt);
-    // printf("FAT size: %u\n", bpb->BPB_FATSz32);
-    // printf("Root cluster: %u\n", bpb->BPB_RootClus);
-    // printf("Total clusters: %u\n", get_total_clusters());
+    
+    printf("FAT32 mounted\n");
+    printf(" Volume starts at LBA: %lu\n", fat32_base_lba);
+    printf(" Bytes/sector: %u\n", bpb->BPB_BytsPerSec);
+    printf(" Sectors/cluster: %u\n", bpb->BPB_SecPerClus);
+    printf(" Reserved sectors: %u\n", bpb->BPB_RsvdSecCnt);
+    printf(" FAT size: %u\n", bpb->BPB_FATSz32);
+    printf(" Root cluster: %u\n", bpb->BPB_RootClus);
+    printf(" Total clusters: %u\n", get_total_clusters());
 
     return true;
 }

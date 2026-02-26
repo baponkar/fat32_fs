@@ -6,26 +6,29 @@
 
 #include "../test/fat32_test_1.h"
 
-extern uint32_t fat32_base_lba;
+
+#define SECTOR_SIZE 512
+
 
 // Testing 8.3 Filename FAT32 Test
 bool fat32_test( uint64_t fat_base_lba){
-    fat32_base_lba = 0; // Assuming partition starts at LBA 0 for testing
+
     uint32_t space_size_mb = 100; // 100 MB
 
     uint32_t sectors = (space_size_mb * 1024 * 1024) / SECTOR_SIZE;
 
-    if (!create_fat32_volume( fat32_base_lba, sectors)) {
+    if (!create_fat32_volume( fat_base_lba, sectors)) {
         printf("Failed to create FAT32 volume\n");
         return 1;
     }
     printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", fat_base_lba, space_size_mb);
 
-    if(!fat32_mount( fat_base_lba)){
+    if(!fat32_mount(fat_base_lba)){
         printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %ld!\n", fat_base_lba);
         return false;
     }
     printf("[FAT32 TEST] Successfully Mount Disk.\n");
+
     
     
     // Crating a directory at root
@@ -39,7 +42,7 @@ bool fat32_test( uint64_t fat_base_lba){
     // Finding Directory Cluster no
     uint32_t dir_cluster_no = 0;
     if(!fat32_path_to_cluster( dir_path, &dir_cluster_no)){
-        printf("[FAT32 TEST] Failed to get Cluster no for %s", dir_path);
+        printf("[FAT32 TEST] Failed to get Cluster no for %s\n", dir_path);
         return false;
     }
     printf("[FAT32 TEST] Successfully get Cluster no %d for directory %s\n", dir_cluster_no, dir_path);

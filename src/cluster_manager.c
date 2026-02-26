@@ -17,12 +17,12 @@
 
 #define SECTOR_SIZE 512
 
-extern uint64_t fat32_base_lba;             // Defined in fat32
-extern BPB *bpb;                            // Defined in fat32
+extern uint64_t fat32_base_lba;             // Defined in fat32_mount.c
+extern BPB *bpb;                            // Defined in fat32_bpb.c
 
 uint32_t fat32_cwd_cluster = 2;             // Current Working Directory Cluster
 
- uint32_t fat32_free_cluster_no = 2;  // Hint for next free cluster (starts from 2 as 0 and 1 are reserved)
+uint32_t fat32_free_cluster_no = 2;  // Hint for next free cluster (starts from 2 as 0 and 1 are reserved)
 
 
 
@@ -32,11 +32,11 @@ uint32_t fat32_cwd_cluster = 2;             // Current Working Directory Cluster
 // This function writes zeros to all sectors of a given cluster
 bool fat32_zero_cluster(uint32_t cluster_no)
 {
-    uint32_t first_data_sector = bpb->BPB_RsvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz32); // start of data region in sectors
+    uint32_t first_data_sector = fat32_base_lba + bpb->BPB_RsvdSecCnt + (bpb->BPB_NumFATs * bpb->BPB_FATSz32); // start of data region in sectors
 
     uint32_t first_sector = first_data_sector + (cluster_no - 2) * bpb->BPB_SecPerClus; // first sector of the given cluster
 
-    uint64_t lba = fat32_base_lba + first_sector;
+    uint64_t lba = first_sector;
 
     uint32_t bytes = bpb->BPB_SecPerClus * SECTOR_SIZE;
 
@@ -54,7 +54,7 @@ bool fat32_zero_cluster(uint32_t cluster_no)
 
 // read a single cluster and store it in given buffer.
 bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
-    uint32_t first_sector = get_first_sector_of_cluster(cluster_number);
+    uint32_t first_sector = fat32_base_lba +get_first_sector_of_cluster(cluster_number);
     uint8_t *buf_ptr = (uint8_t *)buffer;
     
     for(uint8_t i = 0; i < bpb->BPB_SecPerClus; i++){
@@ -68,9 +68,9 @@ bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
 // write a single cluster from given buffer
  bool fat32_write_cluster( uint32_t cluster_number, const void *buffer)
 {
-    uint32_t first_sector = get_first_sector_of_cluster(cluster_number);
+    uint32_t first_sector = fat32_base_lba +get_first_sector_of_cluster(cluster_number);
 
-    return fat32_write_sectors( fat32_base_lba + first_sector, bpb->BPB_SecPerClus, buffer );
+    return fat32_write_sectors( first_sector, bpb->BPB_SecPerClus, buffer );
 }
 
 // Clearing a single cluster
@@ -87,7 +87,7 @@ bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
 
  uint32_t fat32_get_next_cluster( uint32_t current_cluster){
     uint32_t fat_offset = current_cluster * 4; // Total bytes as Each FAT32 entry is 4 bytes
-    uint32_t fat_sector_number = bpb->BPB_RsvdSecCnt + (fat_offset / bpb->BPB_BytsPerSec);
+    uint32_t fat_sector_number = fat32_base_lba + bpb->BPB_RsvdSecCnt + (fat_offset / bpb->BPB_BytsPerSec);
     uint32_t ent_offset = fat_offset % bpb->BPB_BytsPerSec; // Sector
 
     uint8_t sector_buffer[512];
@@ -103,13 +103,13 @@ bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
 
  bool fat32_set_next_cluster( uint32_t current_cluster, uint32_t next_cluster) {
     uint32_t fat_offset = current_cluster * 4;
-    uint32_t fat_sector_relative = fat_offset / bpb->BPB_BytsPerSec;
+    uint32_t fat_sector_relative =  fat_offset / bpb->BPB_BytsPerSec;
     uint32_t ent_offset = fat_offset % bpb->BPB_BytsPerSec;
 
     uint8_t sector_buffer[512]; // Note: Ideally use bpb->BPB_BytsPerSec
 
     // 1. Read from FAT1 to get the current entry (to preserve high 4 bits)
-    uint32_t fat1_sector = bpb->BPB_RsvdSecCnt + fat_sector_relative;
+    uint32_t fat1_sector = fat32_base_lba + bpb->BPB_RsvdSecCnt + fat_sector_relative;
 
     if (!fat32_read_sector( fat1_sector, sector_buffer)) 
         return false;
@@ -120,8 +120,8 @@ bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
 
     // 3. Write this same sector to ALL FAT tables
     for (uint8_t i = 0; i < bpb->BPB_NumFATs; i++) {
-        uint32_t target_sector = bpb->BPB_RsvdSecCnt + (i * bpb->BPB_FATSz32) + fat_sector_relative;
-        if (!fat32_write_sector( target_sector, sector_buffer)) {
+        uint32_t target_sector = fat32_base_lba + bpb->BPB_RsvdSecCnt + (i * bpb->BPB_FATSz32) + fat_sector_relative;
+        if (!fat32_write_sector(target_sector, sector_buffer)) {
             return false;
         }
     }
@@ -179,7 +179,7 @@ bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
     for (uint32_t cluster = fat32_free_cluster_no; cluster < total_clusters + 2; cluster++)
     {
         uint32_t fat_offset = cluster * 4;  // Each entry is 4 bytes
-        uint32_t fat_sector_number = bpb->BPB_RsvdSecCnt + (fat_offset / bpb->BPB_BytsPerSec);
+        uint32_t fat_sector_number = fat32_base_lba + bpb->BPB_RsvdSecCnt + (fat_offset / bpb->BPB_BytsPerSec);
         uint32_t ent_offset =  fat_offset % bpb->BPB_BytsPerSec;
 
         uint8_t sector_buffer[512];

@@ -4,6 +4,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-bool diskio_test();
+bool diskio_test(uint32_t lba);
 
 
