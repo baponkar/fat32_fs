@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
 
 #include "../include/diskio.h"
 
@@ -16,7 +20,7 @@ bool diskio_test() {
     }
 
     // Test disk_read
-    if (!disk_read(buffer, sector, 1)) {
+    if (!disk_read(sector, 1, buffer)) {
         printf("disk_read failed\n");
         return false;
     }
@@ -24,7 +28,7 @@ bool diskio_test() {
 
     // Test disk_write
     memset(buffer, 0xAB, sizeof(buffer)); // Fill buffer with test data
-    if (!disk_write(buffer, sector, 1)) {
+    if (!disk_write(sector, 1, buffer)) {
         printf("disk_write failed\n");
         return false;
     }
@@ -32,15 +36,15 @@ bool diskio_test() {
 
     // Verify the write by reading back the data
     uint8_t verify_buffer[512];
-    if (!disk_read(verify_buffer, sector, 1)) {
+    if (!disk_read(sector, 1, verify_buffer)) {
         printf("disk_read failed during verification\n");
         return false;
     }
-    // if (memcmp(buffer, verify_buffer, sizeof(buffer)) != 0) {
-    //     printf("Data verification failed after disk_write\n");
-    //     return false;
-    // }
-    // printf("Data verification succeeded after disk_write for sector %u\n", sector);
+    if (memcmp(buffer, verify_buffer, sizeof(buffer)) != 0) {
+        printf("Data verification failed after disk_write\n");
+        return false;
+    }
+    printf("Data verification succeeded after disk_write for sector %u\n", sector);
 
     return true;
 }

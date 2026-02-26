@@ -1,11 +1,10 @@
 
-
+#include "../include/diskio.h"
 
 #include "../include/fat32_utility.h"
 
 
-extern bool disk_read(uint64_t lba, uint32_t count, void* buffer);
-extern bool disk_write(uint64_t lba, uint32_t count, const void* buffer);
+
 
 bool fat32_read_sector(uint64_t lba, void *buf) {
     return disk_read(lba, 1, buf);

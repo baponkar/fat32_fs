@@ -1,6 +1,6 @@
 
-#include "../test/fat32_test_1.h"
-#include "../test/diskio_test_1.h"
+#include "fat32_test_1.h"
+#include "diskio_test_1.h"
 
 #include "../include/main.h"
 
