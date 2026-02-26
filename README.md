@@ -40,7 +40,6 @@ make test
 
 Output should be:
 ```bash
-./build/fat32_test
 Created partition 0 on drive 0: Start LBA: 2048, Sectors: 204800
 Successfully created Partition at Sector 2048
 Created partition 1 on drive 0: Start LBA: 206848, Sectors: 1888256
@@ -62,14 +61,31 @@ FAT32 mounted
  Root cluster: 2
  Total clusters: 101590
 [FAT32 TEST] Successfully Mount Disk.
-[FAT32 TEST] Creating Directory TESTDIR is success.
-[FAT32 TEST] Successfully get Cluster no 3 for directory TESTDIR
-[FAT32 TEST] Successfully created TESTFILE.TXT
+[FAT32 TEST] Creating Directory mylongtestdir is success.
+[FAT32 TEST] Successfully get Cluster no 3 for directory mylongtestdir
+[FAT32 TEST] Successfully created mylongtestfile.text
 
-[FAT32 TEST] Successfully open file TESTDIR/TESTFILE.TXT
+[FAT32 TEST] Successfully open file mylongtestdir/mylongtestfile.text
 [FAT32 TEST] Successfully read 56 bytes
 [FAT32 TEST] File content: This is a test text string for testing fat32 filesystem.��
 FAT32 test passed successfully!
+```
+
+Test Disk Content
+```bash
+$ sudo losetup -fP --show disk_img/disk.img # Setup a loop device
+/dev/loop1
+$ sudo fsck.fat -v -n /dev/loop0p1 # Check loop device
+fsck.fat 4.2 (2021-01-31)
+...
+/dev/loop0p1: 2 files, 3/101590 clusters
+$ sudo mount /dev/loop0p1 disk_img/mnt # mount in disk_img/mnt
+$ ls -R disk_img/mnt # directory listing
+disk_img/mnt:
+mylongtestdir
+
+disk_img/mnt/mylongtestdir:
+mylongtestfile.text
 ```
 
 © 2026 baponkar. All rights reserved.
