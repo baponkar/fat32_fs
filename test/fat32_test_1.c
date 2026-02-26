@@ -32,11 +32,11 @@ bool fat32_test(){
 
 
     if(create_partition(PDRV_NO, PARTITION_1_START_LBA, PARTITION_1_TOTAL_LBA, ESP_GUID, ESP_TYPE_GUID, PARTITION_1_NAME)){
-        printf("Successfully created Partition at Sector %ld\n", PARTITION_1_START_LBA);
+        printf("Successfully created Partition at Sector %d\n", PARTITION_1_START_LBA);
     }
     
     if(create_partition( PDRV_NO, PARTITION_2_START_LBA, PARTITION_2_TOTAL_LBA, DATA_PARTITION_GUID, LINUX_FS_GUID, PARTITION_2_NAME)){
-        printf("Successfully created Partition at Sector %ld\n",  PARTITION_2_START_LBA);
+        printf("Successfully created Partition at Sector %d\n",  PARTITION_2_START_LBA);
     }
 
 
@@ -44,13 +44,13 @@ bool fat32_test(){
         printf("Failed to create FAT32 volume\n");
         return 1;
     }
-    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", PARTITION_1_START_LBA, PARTITION_1_TOTAL_LBA);
+    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %d with size: %d MB\n", PARTITION_1_START_LBA, PARTITION_1_TOTAL_LBA);
 
     if (!create_fat32_volume( PARTITION_2_START_LBA, PARTITION_2_TOTAL_LBA)) {
         printf("Failed to create FAT32 volume\n");
         return 1;
     }
-    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", PARTITION_1_START_LBA, PARTITION_2_TOTAL_LBA);
+    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %d with size: %d MB\n", PARTITION_1_START_LBA, PARTITION_2_TOTAL_LBA);
 
     if(!fat32_mount(PARTITION_1_START_LBA)){
         printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %d!\n", PARTITION_1_START_LBA);
@@ -59,7 +59,7 @@ bool fat32_test(){
     printf("[FAT32 TEST] Successfully Mount Disk.\n");
 
      // Crating a directory at root
-    char *dir_path = "TESTDIR";
+    char *dir_path = "mylongtestdir";
     if(!fat32_mkdir( dir_path)){
         printf("[FAT32 TEST] Creating Directory %s is failed!\n", dir_path);
         return false;
@@ -75,7 +75,7 @@ bool fat32_test(){
     printf("[FAT32 TEST] Successfully get Cluster no %d for directory %s\n", dir_cluster_no, dir_path);
 
     // Creating testfile.text
-    char *file_name = "TESTFILE.TXT";   // 8.3 Short Filename
+    char *file_name = "mylongtestfile.text";   // 8.3 Short Filename
     char *buff = "This is a test text string for testing fat32 filesystem.";
     uint32_t file_size = strlen(buff);
 
@@ -85,7 +85,7 @@ bool fat32_test(){
     printf("[FAT32 TEST] Successfully created %s\n\n", file_name);
 
     // Opening testfile.txt
-    const char *file_path = "TESTDIR/TESTFILE.TXT";
+    const char *file_path = "mylongtestdir/mylongtestfile.text";
     FAT32_FILE file;
     if(!fat32_open( file_path, &file)){
         printf("[FAT32 TEST] Faile to read file %s\n", file_path);

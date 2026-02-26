@@ -10,7 +10,7 @@
 #include "../include/fat32_fsinfo.h"
 #include "../include/fat32_mount.h"
 #include "../include/fat32_utility.h"
-
+#include "../include/lfn.h"
 
 #include "../include/cluster_manager.h"
 
@@ -495,34 +495,97 @@ bool fat32_set_volume_label( const char *label) {
 // -------------------------- Directory Entry Management Functions -------------------------
 
 // This function creates a directory entry in the specified parent directory cluster with the given name, attributes, starting cluster, and file size.
- bool fat32_create_dir_entry( uint32_t parent_cluster, const char *name, uint8_t attr, uint32_t first_cluster , uint32_t file_size) {
-    uint32_t entry_cluster, entry_offset;
+ bool fat32_create_dir_entry(uint32_t parent_cluster,
+                            const char *name,
+                            uint8_t attr,
+                            uint32_t first_cluster,
+                            uint32_t file_size)
+{
+    uint32_t cluster_size = get_cluster_size_bytes();
+    char short_name[11];
+    fat32_format_83_name(name, short_name);
 
-    if (!fat32_find_free_dir_entry(  parent_cluster, &entry_cluster, &entry_offset)) {
-        return false;
+    uint8_t checksum = fat32_lfn_checksum((uint8_t*)short_name);
+
+    int name_len = strlen(name);
+    int lfn_count = (name_len + 12) / 13;
+
+    // Write LFN entries if needed
+    if (fat32_needs_lfn(name)) {
+
+        for (int i = lfn_count; i >= 1; i--) {
+
+            uint32_t lfn_cluster, lfn_offset;
+            if (!fat32_find_free_dir_entry(parent_cluster,
+                                           &lfn_cluster,
+                                           &lfn_offset))
+                return false;
+
+            uint8_t *buf = malloc(cluster_size);
+            if (!buf) return false;
+
+            fat32_read_cluster(lfn_cluster, buf);
+
+            LFNEntry *lfn =
+                (LFNEntry *)(buf + lfn_offset);
+
+            memset(lfn, 0, sizeof(LFNEntry));
+
+            lfn->LDIR_Ord = i;
+            if (i == lfn_count)
+                lfn->LDIR_Ord |= 0x40;
+
+            lfn->LDIR_Attr = ATTR_LONG_NAME;
+            lfn->LDIR_Type = 0;
+            lfn->LDIR_Chksum = checksum;
+            lfn->LDIR_FstClusLO = 0;
+
+            int start = (i - 1) * 13;
+
+            for (int j = 0; j < 13; j++) {
+                int idx = start + j;
+                uint16_t ch = (idx < name_len) ? name[idx] : 0xFFFF;
+
+                if (j < 5)
+                    lfn->LDIR_Name1[j] = ch;
+                else if (j < 11)
+                    lfn->LDIR_Name2[j - 5] = ch;
+                else
+                    lfn->LDIR_Name3[j - 11] = ch;
+            }
+
+            fat32_write_cluster(lfn_cluster, buf);
+            free(buf);
+        }
     }
 
-    uint32_t cluster_size = get_cluster_size_bytes();
+    // Write final short 8.3 entry
+    uint32_t entry_cluster, entry_offset;
+
+    if (!fat32_find_free_dir_entry(parent_cluster,
+                                   &entry_cluster,
+                                   &entry_offset))
+        return false;
+
     uint8_t *buf = malloc(cluster_size);
     if (!buf) return false;
 
-    if (!fat32_read_cluster( entry_cluster, buf)) {
-        free(buf);
-        return false;
-    }
+    fat32_read_cluster(entry_cluster, buf);
 
-    DirEntry *entry = (DirEntry *)(buf + entry_offset);
+    DirEntry *entry =
+        (DirEntry *)(buf + entry_offset);
 
     memset(entry, 0, sizeof(DirEntry));
-    fat32_format_83_name(name, (char *)entry->DIR_Name);
 
+    memcpy(entry->DIR_Name, short_name, 11);
     entry->DIR_Attr = attr;
     entry->DIR_FstClusHI = (first_cluster >> 16) & 0xFFFF;
     entry->DIR_FstClusLO = first_cluster & 0xFFFF;
     entry->DIR_FileSize = file_size;
 
-    bool ok = fat32_write_cluster( entry_cluster, buf);
+    bool ok = fat32_write_cluster(entry_cluster, buf);
     free(buf);
+
     return ok;
 }
 
@@ -580,40 +643,95 @@ bool fat32_set_volume_label( const char *label) {
     return fat32_create_dir_entry( parent_cluster, name, ATTR_DIRECTORY, new_cluster, 0 );
 }
 
- bool fat32_dir_exists( uint32_t dir_cluster, const char *name) {
+ bool fat32_dir_exists(uint32_t dir_cluster, const char *name)
+{
     uint32_t cluster_size = get_cluster_size_bytes();
     uint8_t *buf = malloc(cluster_size);
     if (!buf) return false;
 
     uint32_t curr = dir_cluster;
+
     char short_name[11];
     fat32_format_83_name(name, short_name);
 
+    char long_name[260];
+    memset(long_name, 0, sizeof(long_name));
+
     while (is_valid_cluster(curr)) {
-        fat32_read_cluster( curr, buf);
 
-        for (uint32_t off = 0; off < cluster_size; off += 32) {
-            DirEntry *e =
-                (DirEntry *)(buf + off);
-
-            if (e->DIR_Name[0] == 0x00) goto done;
-            if (e->DIR_Name[0] == 0xE5) continue;
-            if (e->DIR_Attr == ATTR_LONG_NAME) continue;
-
-            if (memcmp(e->DIR_Name, short_name, 11) == 0) {
-                free(buf);
-                return true;
-            }
+        if (!fat32_read_cluster(curr, buf)) {
+            free(buf);
+            return false;
         }
 
-        uint32_t next = fat32_get_next_cluster( curr);
-        if (is_end_of_cluster_chain(next)) break;
+        for (uint32_t off = 0; off < cluster_size; off += 32) {
+
+            DirEntry *e = (DirEntry *)(buf + off);
+
+            // End of directory
+            if (e->DIR_Name[0] == 0x00)
+                goto done;
+
+            // Deleted entry
+            if (e->DIR_Name[0] == 0xE5) {
+                memset(long_name, 0, sizeof(long_name));
+                continue;
+            }
+
+            // LFN entry
+            if (e->DIR_Attr == ATTR_LONG_NAME) {
+
+                LFNEntry *lfn = (LFNEntry *)e;
+
+                int order = (lfn->LDIR_Ord & 0x1F) - 1;
+                int pos = order * 13;
+
+                for (int i = 0; i < 5; i++)
+                    if (lfn->LDIR_Name1[i] != 0xFFFF && lfn->LDIR_Name1[i] != 0x0000)
+                        long_name[pos++] = (char)lfn->LDIR_Name1[i];
+
+                for (int i = 0; i < 6; i++)
+                    if (lfn->LDIR_Name2[i] != 0xFFFF && lfn->LDIR_Name2[i] != 0x0000)
+                        long_name[pos++] = (char)lfn->LDIR_Name2[i];
+
+                for (int i = 0; i < 2; i++)
+                    if (lfn->LDIR_Name3[i] != 0xFFFF && lfn->LDIR_Name3[i] != 0x0000)
+                        long_name[pos++] = (char)lfn->LDIR_Name3[i];
+
+                continue;
+            }
+
+            // Normal entry (directory only)
+            if (e->DIR_Attr & ATTR_DIRECTORY) {
+
+                // Compare LFN first
+                if (long_name[0] != '\0') {
+                    if (strcmp(long_name, name) == 0) {
+                        free(buf);
+                        return true;
+                    }
+                }
+
+                // Compare 8.3
+                if (memcmp(e->DIR_Name, short_name, 11) == 0) {
+                    free(buf);
+                    return true;
+                }
+            }
+
+            // Reset LFN buffer after normal entry
+            memset(long_name, 0, sizeof(long_name));
+        }
+
+        uint32_t next = fat32_get_next_cluster(curr);
+        if (is_end_of_cluster_chain(next))
+            break;
+
         curr = next;
     }
 
-    done:
-        free(buf);
-
+done:
+    free(buf);
     return false;
 }
 
@@ -738,44 +856,77 @@ bool fat32_path_to_cluster( const char *path, uint32_t *out_cluster)
 
 
 
- bool fat32_find_file(  uint32_t dir_cluster, const char *name, DirEntry *out_entry, uint32_t *entry_cluster, uint32_t *entry_offset)
+ bool fat32_find_file(uint32_t dir_cluster,
+                     const char *name,
+                     DirEntry *out_entry,
+                     uint32_t *entry_cluster,
+                     uint32_t *entry_offset)
 {
-    uint32_t cluster_count = fat32_count_cluster_chain( dir_cluster);
-    uint32_t cluster_size = bpb->BPB_BytsPerSec * bpb->BPB_SecPerClus * cluster_count;
-
+    uint32_t cluster_size = get_cluster_size_bytes();
     uint8_t *buf = malloc(cluster_size);
     if (!buf) return false;
 
-    if (!fat32_read_cluster_chain( dir_cluster, buf, cluster_size)) {
-        free(buf);
-        return false;
-    }
+    uint32_t curr = dir_cluster;
+    char long_name[260];
+    memset(long_name, 0, sizeof(long_name));
 
-    char name83[11];
-    fat32_format_83_name(name, name83);
+    char short_name[11];
+    fat32_format_83_name(name, short_name);
 
-    DirEntry *entry = (DirEntry *)buf;
-    uint32_t entries = cluster_size / sizeof(DirEntry);
+    while (is_valid_cluster(curr)) {
 
-    for (uint32_t i = 0; i < entries; i++) {
-        if (entry[i].DIR_Name[0] == 0x00) break;
-        if (entry[i].DIR_Name[0] == 0xE5) continue;
+        fat32_read_cluster(curr, buf);
 
-        if (!(entry[i].DIR_Attr & ATTR_DIRECTORY) &&
-            memcmp(entry[i].DIR_Name, name83, 11) == 0)
-        {
-            memcpy(out_entry, &entry[i], sizeof(DirEntry));
+        for (uint32_t off = 0; off < cluster_size; off += 32) {
 
-            *entry_cluster = dir_cluster;
-            *entry_offset = i;
+            DirEntry *e = (DirEntry *)(buf + off);
 
-            free(buf);
-            return true;
+            if (e->DIR_Name[0] == 0x00)
+                break;
+
+            if (e->DIR_Name[0] == 0xE5)
+                continue;
+
+            if (e->DIR_Attr == ATTR_LONG_NAME) {
+
+                LFNEntry *lfn = (LFNEntry *)e;
+
+                int order = (lfn->LDIR_Ord & 0x1F) - 1;
+                int pos = order * 13;
+
+                for (int i = 0; i < 5; i++)
+                    long_name[pos++] = (char)lfn->LDIR_Name1[i];
+
+                for (int i = 0; i < 6; i++)
+                    long_name[pos++] = (char)lfn->LDIR_Name2[i];
+
+                for (int i = 0; i < 2; i++)
+                    long_name[pos++] = (char)lfn->LDIR_Name3[i];
+
+                continue;
+            }
+
+            if (strcmp(long_name, name) == 0 ||
+                memcmp(e->DIR_Name, short_name, 11) == 0)
+            {
+                memcpy(out_entry, e, sizeof(DirEntry));
+                *entry_cluster = curr;
+                *entry_offset = off;
+                free(buf);
+                return true;
+            }
+
+            memset(long_name, 0, sizeof(long_name));
         }
+
+        uint32_t next = fat32_get_next_cluster(curr);
+        if (is_end_of_cluster_chain(next))
+            break;
+
+        curr = next;
     }
 
     free(buf);
-
     return false;
 }
 
@@ -803,19 +954,6 @@ bool fat32_mkdir_root( const char *name) {
 
 
 
-
-
-
-
-// LFN
-
-uint8_t fat32_lfn_checksum(const uint8_t short_name[11])
-{
-    uint8_t sum = 0;
-    for (int i = 0; i < 11; i++)
-        sum = ((sum & 1) ? 0x80 : 0) + (sum >> 1) + short_name[i];
-    return sum;
-}
 
 
 

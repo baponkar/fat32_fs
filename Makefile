@@ -24,6 +24,7 @@ SRC = $(SRC_DIR)/cluster_manager.c \
 	  $(SRC_DIR)/guid.c \
 	  $(SRC_DIR)/mbr.c \
 	  $(SRC_DIR)/partition_manager.c \
+	  $(SRC_DIR)/lfn.c \
 	  $(TEST_DIR)/diskio_test_1.c \
 	  $(TEST_DIR)/fat32_test_1.c \
 	  $(TEST_DIR)/main.c

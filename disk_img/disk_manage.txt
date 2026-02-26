@@ -86,10 +86,10 @@ sudo mount -o loop,offset=$((2048*512)) disk_img/disk_1.img /mnt1
 ----------------------------------------------------------------
 
 
-sudo losetup -fP --show disk_img/disk_1.img
+sudo losetup -fP --show disk_img/disk.img
 sudo fsck.fat -v -n /dev/loop0p1
-sudo mount /dev/loop0p1 disk_img/mnt1
-ls -R disk_img/mnt1 disk_img/mnt1:
+sudo mount /dev/loop0p1 disk_img/mnt
+ls -R disk_img/mnt
 
 ----------------------------------------------------------------
 
@@ -129,7 +129,7 @@ echo "Hello from Linux" | sudo tee disk_img/mnt1/HELLO.TXT
 ------------------------------------------------------------------
 # Check Disk Partition
 sudo parted disk_img/disk_1.img print
-fdisk -l disk_img/disk_1.img
+fdisk -l disk_img/disk.img
 
 ------------------------------------------------------------------
 # Check MBR LBA0
