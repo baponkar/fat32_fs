@@ -9,8 +9,9 @@ This repository will help to create FAT32 Filesystem and test that filesystem in
 
 This repo has following support
 
-[x] GPT Partition Support
-[x] 8.3 File/Directory Name Support
+✅ GPT Partition Support
+
+✅ 8.3 File/Directory Name Support
 
 Here disk inpot/output is using following two functions
 
