@@ -83,7 +83,7 @@ bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
     // Initialize root directory cluster
     uint8_t empty_cluster[512 * bpb->BPB_SecPerClus];
     memset(empty_cluster, 0, sizeof(empty_cluster));
-    if(!fat32_write_sectors(bpb->BPB_RootClus, bpb->BPB_SecPerClus, empty_cluster)){
+    if(!fat32_write_sectors(start_lba + bpb->BPB_RootClus, bpb->BPB_SecPerClus, empty_cluster)){
         printf("Failed to initialize root directory cluster\n");
         return false;
     }
@@ -136,7 +136,7 @@ bool fat32_mount( uint64_t start_lba) {
     fat32_cwd_cluster = bpb->BPB_RootClus;
     
     printf("FAT32 mounted\n");
-    printf(" Volume starts at LBA: %lu\n", fat32_base_lba);
+    printf(" Volume starts at LBA: %u\n", fat32_base_lba);
     printf(" Bytes/sector: %u\n", bpb->BPB_BytsPerSec);
     printf(" Sectors/cluster: %u\n", bpb->BPB_SecPerClus);
     printf(" Reserved sectors: %u\n", bpb->BPB_RsvdSecCnt);

@@ -4,6 +4,9 @@
 
 #include "../include/fat32.h"
 
+#include "../src/guid.h"
+#include "../src/gpt.h"
+
 #include "../test/fat32_test_1.h"
 
 
@@ -14,24 +17,36 @@
 bool fat32_test( uint64_t fat_base_lba){
 
     uint32_t space_size_mb = 100; // 100 MB
-
     uint32_t sectors = (space_size_mb * 1024 * 1024) / SECTOR_SIZE;
 
-    if (!create_fat32_volume( fat_base_lba, sectors)) {
+    if(create_partition( 0, 2048, sectors, ESP_GUID, ESP_TYPE_GUID, "ESP Partition")){
+        printf("Successfully created Partition at Sector 2048\n");
+    }
+    
+    if(create_partition( 0, 2048 + sectors,sectors, DATA_PARTITION_GUID, LINUX_FS_GUID, "Data Partition")){
+        printf("Successfully created Partition at Sector %d\n",  2048 + sectors);
+    }
+
+
+    if (!create_fat32_volume( 2048, sectors)) {
         printf("Failed to create FAT32 volume\n");
         return 1;
     }
     printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", fat_base_lba, space_size_mb);
 
-    if(!fat32_mount(fat_base_lba)){
-        printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %ld!\n", fat_base_lba);
+    if (!create_fat32_volume( 2048 + sectors, sectors)) {
+        printf("Failed to create FAT32 volume\n");
+        return 1;
+    }
+    printf("[FAT32 TEST] Successfully created FAT32 volume at LBA: %ld with size: %d MB\n", fat_base_lba + sectors, space_size_mb);
+
+    if(!fat32_mount(2048)){
+        printf("[FAT32 TEST] Failed to Mount FAT32 FS at LBA: %d!\n", 2048);
         return false;
     }
     printf("[FAT32 TEST] Successfully Mount Disk.\n");
 
-    
-    
-    // Crating a directory at root
+     // Crating a directory at root
     char *dir_path = "TESTDIR";
     if(!fat32_mkdir( dir_path)){
         printf("[FAT32 TEST] Creating Directory %s is failed!\n", dir_path);
@@ -77,6 +92,8 @@ bool fat32_test( uint64_t fat_base_lba){
     printf("[FAT32 TEST] File content: %s\n", buffer);
 
     free(buffer);
+
+
 
     return true;
 }

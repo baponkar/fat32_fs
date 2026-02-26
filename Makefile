@@ -20,6 +20,10 @@ SRC = $(SRC_DIR)/cluster_manager.c \
 	  $(SRC_DIR)/fat32_mount.c \
 	  $(SRC_DIR)/fat32_utility.c \
 	  $(SRC_DIR)/fat32.c \
+	  $(SRC_DIR)/gpt.c \
+	  $(SRC_DIR)/guid.c \
+	  $(SRC_DIR)/mbr.c \
+	  $(SRC_DIR)/partition_manager.c \
 	  $(TEST_DIR)/diskio_test_1.c \
 	  $(TEST_DIR)/fat32_test_1.c \
 	  $(TEST_DIR)/main.c
@@ -47,9 +51,10 @@ disk:
 	fi
 
 clean:
+	rm -f $(DISK_DIR)/disk.img
 	rm -rf $(BUILD_DIR)
 
-test: disk $(TARGET)
+test: disk $(TARGET) 
 	./$(TARGET)
 
 help:

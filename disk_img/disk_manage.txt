@@ -1,0 +1,174 @@
+
+**************************************************************************
+*                      Disk Test                                         *
+**************************************************************************
+
+
+# To create a winimage readable disk from disk_1.img
+dd if=disk_img/disk_1.img of=partition1.img bs=512 skip=2048 count=2095071
+
+Check partition and offset details
+sudo fdisk -l disk_img/disk_1.img
+
+# Debugging the disk
+fdisk -l disk_img/disk_1.img
+
+# Check partition
+parted disk_img/disk_1.img print
+
+qemu-img info disk_img/disk_1.img
+dd if=disk_img/disk_1.img bs=512 skip=1 count=1 2>/dev/null | hexdump -C
+hexdump -C disk_img/disk_1.img | head -32
+file disk_img/disk_1.img
+gdisk -l disk_img/disk_1.img
+
+n = total no sectors
+┌───────────────────────────────────────────────────────┐
+| Sector | Content					                    |
+|--------+----------------------------------------------|
+| 0	     | Protective MBR				                |
+| 1	     | GPT Header					                |
+| 2	     | Partition Entry - 1, 2, 3, 4			        |
+| ...	 | ...						                    |
+| 33	 | Partition Entry - 125, 126, 127, 128	        |
+| 34	 | 0x0						                    |
+| ...	 | ...						                    |
+| 2047	 | 0x0						                    |
+| 2048	 | FAT32 Partition (ESP) Start                  |
+| ...	 | ...						                    |
+| 206847 | FAT32 Partition (ESP) End                    |
+| 206848 | MY FS Partition (Data) Start                 |
+| ...    | ....						                    |
+| m      | MY FS Partition (Data) End                   |
+| n - 33 | Backup Partition Entry 1, 2, 3, 4	        |
+| ...	 | ...						                    |
+| n - 2	 | Backup Partition Entry 125, 126, 127, 128	|
+| n - 1	 | Backup GPT Header				            |
+└───────────────────────────────────────────────────────┘
+
+
+# List all loop devices
+losetup -a
+
+# Or filter for your specific image
+losetup -a | grep disk_1.img
+
+# Check mount points
+mount | grep loop
+
+# Find next available loop device
+sudo losetup -f  # Shows next free loop (e.g., /dev/loop5)
+
+# Manually set up loop with offset
+sudo losetup -o $((2048*512)) /dev/loop5 disk_img/disk_1.img
+
+# Now mount it
+sudo mount /dev/loop5 /mnt1
+
+-----------------------------------------------------------------
+# First, unmount if already mounted
+sudo umount /mnt1 2>/dev/null
+
+# Detach all loop devices for this image
+sudo losetup -d /dev/loop0   # or whatever loop# was used
+
+# Or detach ALL loop devices (careful!)
+sudo losetup -D
+
+# Now try again
+sudo mount -o loop,offset=$((2048*512)) disk_img/disk_1.img /mnt1
+
+-----------------------------------------------------------------
+
+# Mount a Disk
+sudo mount -o loop,offset=$((2048*512)) disk_img/disk_1.img /mnt1
+
+----------------------------------------------------------------
+
+
+sudo losetup -fP --show disk_img/disk_1.img
+sudo fsck.fat -v -n /dev/loop0p1
+sudo mount /dev/loop0p1 disk_img/mnt1
+ls -R disk_img/mnt1 disk_img/mnt1:
+
+----------------------------------------------------------------
+
+# 1. First, find what's mounted from /dev/loop0
+mount | grep loop0
+# or
+df -h | grep loop0
+
+# 2. Unmount the filesystem (if mounted)
+sudo umount /dev/loop0 2>/dev/null
+# OR if it's mounted at a specific mount point
+sudo umount /mnt/c/Projects/C/KeblaOS/disk_img/disk_1.img 2>/dev/null
+
+# 3. Detach the loop device
+sudo losetup -d /dev/loop0
+
+# 4. Verify it's gone
+losetup -a
+
+
+----------------------------------------------------------------
+# Clear all loop devices
+sudo umount -R disk_img/mnt1
+sudo losetup -D
+losetup -a
+
+
+
+-----------------------------------------------------------------
+# Creating a file inside the device
+sudo losetup -Pf disk_img/disk_1.img
+sudo mount /dev/loop0p1 disk_img/mnt1
+ls -R disk_img/mnt1 disk_img/mnt1:
+
+echo "Hello from Linux" | sudo tee disk_img/mnt1/HELLO.TXT
+
+------------------------------------------------------------------
+# Check Disk Partition
+sudo parted disk_img/disk_1.img print
+fdisk -l disk_img/disk_1.img
+
+------------------------------------------------------------------
+# Check MBR LBA0
+hexdump -C -n 512 disk_img/disk_1.img
+
+# Check GPT Header LAA1
+hexdump -C -s 512 -n 92 disk_img/disk_1.img
+
+# Check GPT Partition Table LBA2
+hexdump -C -s 1024 -n 512 disk_img/disk_1.img
+
+
+-----------------------------------------------
+# Get Exact Sector Start of Partition 2
+sudo parted disk_img/disk.img unit s print
+
+gdisk -l disk_img/disk.img
+
+# ✅ 2️⃣ Inspect EXT2 Superblock Manually (Hexdump)
+sudo dd if=disk_img/disk.img skip=$((206848 + 2)) count=2 bs=512 | hexdump -C | head
+
+# ✅ 3️⃣ Use file to Verify Partition 2
+sudo losetup -Pf --show disk_img/disk.img
+
+ls /dev/loop0p*
+
+sudo file -s /dev/loop0p2
+sudo mount /dev/loop0p2 /mnt
+ls /mnt
+
+
+sudo umount /mnt
+sudo losetup -d /dev/loop0
+
+
+
+
+
+
+
+
+
