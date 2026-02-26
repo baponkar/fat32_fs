@@ -13,6 +13,8 @@ This repo has following support
 
 ✅ 8.3 File/Directory Name Support
 
+✅ Long File/Directory Name support
+
 Here disk inpot/output is using following two functions
 
 ```
