@@ -67,10 +67,10 @@ TWO PARTITIONS ARE CREATED IN THIS EXAMPLE:
 
 #include "../include/diskio.h"
 
-#include "mbr.h"
+#include "../include/mbr.h"
 
 
-#include "gpt.h"
+#include "../include/gpt.h"
 
 
 

@@ -7,6 +7,11 @@
 ---
 This repository will help to create FAT32 Filesystem and test that filesystem in raw disk image.In current version do not support Long file/directory name.
 
+This repo has following support
+
+[x] GPT Partition Support
+[x] 8.3 File/Directory Name Support
+
 Here disk inpot/output is using following two functions
 
 ```
@@ -27,15 +32,32 @@ make disk
 
 To test
 ```
-make run
+make test
 ```
 
 Output should be:
 ```bash
 ./build/fat32_test
-Creating FAT32 Volume at LBA 0 with 204800 sectors
+Created partition 0 on drive 0: Start LBA: 2048, Sectors: 204800
+Successfully created Partition at Sector 2048
+Created partition 1 on drive 0: Start LBA: 206848, Sectors: 1888256
+Successfully created Partition at Sector 206848
+Creating FAT32 Volume at LBA 2048 with 204800 sectors
   Initializing FAT 1... Done
   Initializing FAT 2... Done
+[FAT32 TEST] Successfully created FAT32 volume at LBA: 2048 with size: 204800 MB
+Creating FAT32 Volume at LBA 206848 with 1888256 sectors
+  Initializing FAT 1... Done
+  Initializing FAT 2... Done
+[FAT32 TEST] Successfully created FAT32 volume at LBA: 2048 with size: 1888256 MB
+FAT32 mounted
+ Volume starts at LBA: 2048
+ Bytes/sector: 512
+ Sectors/cluster: 2
+ Reserved sectors: 32
+ FAT size: 794
+ Root cluster: 2
+ Total clusters: 101590
 [FAT32 TEST] Successfully Mount Disk.
 [FAT32 TEST] Creating Directory TESTDIR is success.
 [FAT32 TEST] Successfully get Cluster no 3 for directory TESTDIR
@@ -43,7 +65,7 @@ Creating FAT32 Volume at LBA 0 with 204800 sectors
 
 [FAT32 TEST] Successfully open file TESTDIR/TESTFILE.TXT
 [FAT32 TEST] Successfully read 56 bytes
-[FAT32 TEST] File content: This is a test text string for testing fat32 filesystem.�
+[FAT32 TEST] File content: This is a test text string for testing fat32 filesystem.��
 FAT32 test passed successfully!
 ```
 
