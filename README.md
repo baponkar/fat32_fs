@@ -1,6 +1,7 @@
 [![Badge](https://img.shields.io/badge/FAT32-FS-blue)](https://github.com/baponkar/fat32_fs)
 
-![FAT32 FILESYSTEM IMAGE](./social_image.png)
+
+![FAT32 FILESYSTEM IMAGE](./img/social_image.png)
 
 # FAT32 Filesystem
 
@@ -72,23 +73,53 @@ FAT32 mounted
 FAT32 test passed successfully!
 ```
 
-Check the Disk and test Disk Content
-```bash
-bapon@linuxos:/home$ sudo losetup -fP --show disk_img/disk.img # Setup a loop device
-/dev/loop1
-bapon@linuxos:/home$ sudo fsck.fat -v -n /dev/loop0p1 # Check loop device
-fsck.fat 4.2 (2021-01-31)
-...
-/dev/loop0p1: 2 files, 3/101590 clusters
-bapon@linuxos:/home$ sudo mount /dev/loop0p1 disk_img/mnt # mount in disk_img/mnt
-bapon@linuxos:/home$ ls -R disk_img/mnt # directory listing
-disk_img/mnt:
-mylongtestdir
+Check the Disk and test Disk Content:
 
-disk_img/mnt/mylongtestdir:
-mylongtestfile.text
-bapon@linuxos:/home$ cat disk_img/mnt/mylongtestdir/mylongtestfile.text
-This is a test text string for testing fat32 filesystem.bapon@linuxos:/home$
+```bash
+# Creating a Blank Disk Image of size 1024 bytes i.e. 1 GB
+dd if=/dev/zero of=disk_img/disk.img bs=1M count=1024
+
+# Check GPT Partition
+gdisk -l disk_img/disk.img
+
+# Creating a loop device for disk.img on first available loopdevice
+sudo losetup -fP --show disk_img/disk.img 
+
+# if giving output
+/dev/loop1
+
+# Check FAT Partition 
+sudo fsck.fat -v -n /dev/loop0p1
+
+# Mount first partition of loop device on mnt dir
+sudo mount /dev/loop0p1 disk_img/mnt 
+
+# List root mnt directory
+ls -R disk_img/mnt
+
+# Check mylongtestfile.text content
+cat disk_img/mnt/mylongtestdir/mylongtestfile.text
+
+# More Debug functions
+
+# Check MBR LBA0
+hexdump -C -n 512 disk_img/disk_1.img
+
+# Check GPT Header LAA1
+hexdump -C -s 512 -n 92 disk_img/disk_1.img
+
+# Check GPT Partition Table LBA2
+hexdump -C -s 1024 -n 512 disk_img/disk_1.img
+
+# Unmount the disk.img
+sudo umount /mnt
+
+# Remove specific loop device
+sudo losetup -d /dev/loop0
+
+# Remove all loop device
+sudo losetup -D
+
 ```
 
 © 2026 baponkar. All rights reserved.

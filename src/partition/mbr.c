@@ -6,7 +6,7 @@ Sector 0: Protective MBR
 - 2 bytes: MBR Signature (0x55AA)
 */
 
-#include "../include/diskio.h"
+#include "../../include/diskio.h"
 
 #include <stdio.h>
 #include <string.h>

@@ -6,11 +6,11 @@
 
 #include "../include/diskio.h"
 
-#include "../include/guid.h"
-#include "../include/mbr.h"
-#include "../include/gpt.h"
+#include "../../include/guid.h"
+#include "../../include/mbr.h"
+#include "../../include/gpt.h"
 
-#include "../include/partition_manager.h"
+#include "../../include/partition_manager.h"
 
 
 
@@ -21,7 +21,7 @@ PartitionEntry partitions[MAX_PARTITIONS];  // Array of PartitionEntry
 
 size_t partition_count = 0;
 
-bool create_partition(uint8_t pdrv_no, uint64_t start_lba, uint64_t sectors, guid_t partition_guid, guid_t partition_type_guid, char* name) {
+bool create_partition(uint8_t pdrv_no, uint64_t start_lba, uint64_t sectors, const guid_t partition_guid, const guid_t partition_type_guid, char* name) {
     
     size_t partition_index = partition_count; // Get the next available partition index
 

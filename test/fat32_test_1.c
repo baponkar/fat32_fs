@@ -8,6 +8,7 @@
 
 #include "../include/guid.h"
 #include "../include/gpt.h"
+#include "../include/partition_manager.h"
 
 #include "../test/fat32_test_1.h"
 
