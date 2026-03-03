@@ -146,3 +146,14 @@ bool fat32_mount( uint64_t start_lba) {
 
     return true;
 }
+
+
+
+
+
+
+
+
+
+
+

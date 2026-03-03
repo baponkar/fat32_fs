@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "../include/diskio.h"
+#include "../../include/diskio.h"
 
 #include "../../include/guid.h"
 #include "../../include/mbr.h"

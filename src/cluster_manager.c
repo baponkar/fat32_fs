@@ -23,7 +23,7 @@ extern BPB *bpb;                            // Defined in fat32_bpb.c
 
 uint32_t fat32_cwd_cluster = 2;             // Current Working Directory Cluster
 
-uint32_t fat32_free_cluster_no = 2;  // Hint for next free cluster (starts from 2 as 0 and 1 are reserved)
+uint32_t fat32_free_cluster_no = 2;         // Hint for next free cluster (starts from 2 as 0 and 1 are reserved)
 
 
 
@@ -46,7 +46,7 @@ bool fat32_zero_cluster(uint32_t cluster_no)
 
     memset(zero, 0, bytes);
 
-    bool ok = fat32_write_sectors( lba, bpb->BPB_SecPerClus, zero);
+    bool ok = fat32_write_sectors( lba, bpb->BPB_SecPerClus, zero); // Clear all sectors 
 
     free(zero);
 

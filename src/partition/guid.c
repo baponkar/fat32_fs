@@ -3,9 +3,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "../include/diskio.h"
+#include "../../include/diskio.h"
 
-#include "../include/guid.h"
+#include "../../include/guid.h"
 
 
 

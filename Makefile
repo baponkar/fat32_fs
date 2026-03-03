@@ -12,33 +12,17 @@ DISK_PATH = $(DISK_DIR)/disk.img
 
 TARGET = $(BUILD_DIR)/fat32_test
 
-SRC = $(SRC_DIR)/cluster_manager.c \
-      $(SRC_DIR)/diskio.c \
-	  $(SRC_DIR)/fat.c \
-      $(SRC_DIR)/fat32_bpb.c \
-      $(SRC_DIR)/fat32_fsinfo.c \
-	  $(SRC_DIR)/fat32_mount.c \
-	  $(SRC_DIR)/fat32_utility.c \
-	  $(SRC_DIR)/fat32.c \
-	  $(SRC_DIR)/gpt.c \
-	  $(SRC_DIR)/guid.c \
-	  $(SRC_DIR)/mbr.c \
-	  $(SRC_DIR)/partition_manager.c \
-	  $(SRC_DIR)/lfn.c \
-	  $(TEST_DIR)/diskio_test_1.c \
-	  $(TEST_DIR)/fat32_test_1.c \
-	  $(TEST_DIR)/main.c
+C_SRC_FILES := $(shell find $(SRC_DIR) $(TEST_DIR) -name '*.c')	# All C files
+OBJ_FILES := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(C_SRC_FILES)) # Object files will be placed in the build directory, mirroring the source structure
 
-# Object files will be placed in the build directory, mirroring the source structure
-OBJ = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC))
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ)
+$(TARGET): $(OBJ_FILES)
 	$(CC) $(CFLAGS) $^ -o $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Ensure disk directory + disk image exists

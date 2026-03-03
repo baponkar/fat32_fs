@@ -7,7 +7,7 @@
 
 ## Description
 ---
-This repository will help to create FAT32 Filesystem and test that filesystem in raw disk image.In current version do not support Long file/directory name.
+This repository will help to create FAT32 Filesystem and test that filesystem in raw disk image.
 
 This repo has following support
 
@@ -16,6 +16,8 @@ This repo has following support
 ✅ 8.3 File/Directory Name Support
 
 ✅ Long File/Directory Name support
+
+✅ Successfull test functions
 
 Here disk inpot/output is using following two functions
 
@@ -122,4 +124,8 @@ sudo losetup -D
 
 ```
 
+
 © 2026 baponkar. All rights reserved.
+
+
+
