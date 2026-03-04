@@ -1,5 +1,7 @@
+# Developed by Bapon Kar
+# Last edited: 03-03-2026
+# This file find all c files inside of src and test directory and compile all those c files and create fat32_test binary file
 
-# Last edited: 26-02-2026
 
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11
@@ -22,8 +24,9 @@ $(TARGET): $(OBJ_FILES)
 	$(CC) $(CFLAGS) $^ -o $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@mkdir -p $(dir $@)				# Creating subdirectories
+	$(CC) $(CFLAGS) -c $< -o $@		# Compiling C files
+
 
 # Ensure disk directory + disk image exists
 disk:
@@ -51,3 +54,4 @@ help:
 	@echo "  make help   - Show this help message"
 
 .PHONY: all disk clean run help
+

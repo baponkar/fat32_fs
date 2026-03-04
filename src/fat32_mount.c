@@ -4,10 +4,12 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "../include/fat32_types.h"
 #include "../include/fat32_bpb.h"
 #include "../include/fat32_fsinfo.h"
 #include "../include/fat.h"
 #include "../include/fat32_utility.h"
+#include "../include/cluster_manager.h"
 
 #include "../include/fat32_mount.h"
 
@@ -15,6 +17,64 @@
 uint32_t fat32_base_lba = 0;                // Base LBA of the FAT32 partition, set during mount or creation
 extern uint32_t fat32_cwd_cluster;          // Defined in cluster_manager.c
 extern BPB *bpb;                            // Defined in fat32_bpb.c
+
+/*
+ This function sets the volume label in the root directory. 
+ It either updates an existing Volume ID entry or creates a new one if it doesn't exist.
+ */
+static bool fat32_set_volume_label( const char *label) {
+    uint32_t root_cluster = get_root_dir_cluster();
+    uint32_t cluster_size = get_cluster_size_bytes();
+    
+    uint8_t *buf = (uint8_t *) malloc(cluster_size);
+    if (!buf) return false;
+
+    // 1. Read the first cluster of the root directory
+    if (!fat32_read_cluster( root_cluster, buf)) {
+        free(buf);
+        return false;
+    }
+
+    // 2. Find an empty slot or an existing Volume ID slot
+    DirEntry *target_entry = NULL;
+    for (uint32_t offset = 0; offset < cluster_size; offset += 32) {
+        DirEntry *entry = (DirEntry *)(buf + offset);
+        
+        // If we find an existing label, overwrite it. 
+        // Otherwise, take the first available slot (0x00 or 0xE5).
+        if (entry->DIR_Attr == ATTR_VOLUME_ID || entry->DIR_Name[0] == 0x00 || entry->DIR_Name[0] == 0xE5) {
+            target_entry = entry;
+            break;
+        }
+    }
+
+    if (!target_entry) {
+        free(buf);
+        return false; // Root cluster is full (unlikely for a fresh disk)
+    }
+
+    // 3. Setup the Label Entry
+    memset(target_entry, 0, sizeof(DirEntry));
+    
+    // Format name to 11 chars, no dot, uppercase, space padded
+    for (int i = 0; i < 11; i++) {
+        if (label[i] && label[i] != '.') {
+            target_entry->DIR_Name[i] = toupper(label[i]);
+        } else {
+            target_entry->DIR_Name[i] = ' ';
+        }
+    }
+
+    target_entry->DIR_Attr = ATTR_VOLUME_ID;
+    target_entry->DIR_FstClusHI = 0; // Always 0 for Volume Labels
+    target_entry->DIR_FstClusLO = 0; // Always 0 for Volume Labels
+    target_entry->DIR_FileSize = 0;
+
+    // 4. Write back to disk
+    bool ok = fat32_write_cluster( root_cluster, buf);
+    free(buf);
+    return ok;
+}
 
 // Main function to create FAT32 volume
 // This function create and write BPB, FSInfo, and initialize FAT tables
@@ -130,6 +190,11 @@ bool fat32_mount( uint64_t start_lba) {
 
     if (bpb->BPB_SecPerClus == 0) {
         printf("FAT32: invalid cluster size\n");
+        return false;
+    }
+
+    if(fat32_set_volume_label("KEBLAOS FAT")){
+        printf("FAT32: faile to set Volume Label\n");
         return false;
     }
 

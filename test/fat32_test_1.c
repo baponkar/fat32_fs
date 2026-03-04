@@ -59,7 +59,16 @@ bool fat32_test(){
     }
     printf("[FAT32 TEST] Successfully Mount Disk.\n");
 
-     // Crating a directory at root
+    // Creating a short directory at root
+    if(!fat32_mkdir("BOOT")){
+        printf("[FAT32 TEST] Creating Directory %s is failed!\n", "BOOT");
+        return false;
+    }
+
+    // Creating a short file at that BOOT
+    
+
+    // Crating a long directory at root
     char *dir_path = "mylongtestdir";
     if(!fat32_mkdir( dir_path)){
         printf("[FAT32 TEST] Creating Directory %s is failed!\n", dir_path);
@@ -75,7 +84,7 @@ bool fat32_test(){
     }
     printf("[FAT32 TEST] Successfully get Cluster no %d for directory %s\n", dir_cluster_no, dir_path);
 
-    // Creating testfile.text
+    // Creating mylongtestfile.text
     char *file_name = "mylongtestfile.text";   // 8.3 Short Filename
     char *buff = "This is a test text string for testing fat32 filesystem.";
     uint32_t file_size = strlen(buff);
