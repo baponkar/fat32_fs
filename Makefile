@@ -11,6 +11,7 @@ SRC_DIR = src
 DISK_DIR = disk_img
 TEST_DIR = test
 DISK_PATH = $(DISK_DIR)/disk.img
+DISK_SIZE = 1024
 
 TARGET = $(BUILD_DIR)/fat32_test
 
@@ -32,8 +33,8 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 disk:
 	@mkdir -p $(DISK_DIR)
 	@if [ ! -f $(DISK_PATH) ]; then \
-		echo "Creating 100MB disk image..."; \
-		dd if=/dev/zero of=$(DISK_PATH) bs=1M count=100; \
+		echo "Creating blank disk image..."; \
+		dd if=/dev/zero of=$(DISK_PATH) bs=1M count=$(DISK_SIZE); \
 	else \
 		echo "Disk image already exists."; \
 	fi

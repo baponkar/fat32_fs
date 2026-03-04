@@ -129,6 +129,7 @@ bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
 
     // 5. Initialize FAT tables
     uint32_t fat_sector_size = bpb->BPB_FATSz32;
+
     for (uint32_t fat_num = 0; fat_num < bpb->BPB_NumFATs; fat_num++) {
         uint64_t fat_start = start_lba + bpb->BPB_RsvdSecCnt + (fat_num * fat_sector_size);
         printf("  Initializing FAT %d...", fat_num + 1);
@@ -151,7 +152,11 @@ bool create_fat32_volume( uint64_t start_lba, uint32_t sectors) {
     return true;
 }
 
+
+
+
 bool fat32_mount( uint64_t start_lba) {
+
     fat32_base_lba = start_lba;
 
     uint8_t sector[512];

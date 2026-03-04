@@ -46,7 +46,7 @@ BPB *create_bpb_fat32(uint32_t tot_sectors, uint8_t sectors_per_cluster, uint32_
 
 // Helper functions
 uint32_t get_total_clusters();          // Total Sectors present in this partition
-uint32_t get_root_dir_cluster();  // usually 2
+uint32_t get_root_dir_cluster();        // usually 2
 uint8_t get_sectors_per_cluster();      // 2, 4, 8, 16, 32, 64, 128
 uint16_t get_bytes_per_sector();        // 512 Bytes
 uint32_t get_fat_size_in_sectors();     // Total sectors taken by two FAT tables
@@ -56,7 +56,7 @@ uint32_t get_cluster_size_bytes();      // Get a single cluster size in bytes
 uint32_t get_root_dir_sect_num();       // Get First Sector of the root cluster
 uint16_t get_reserved_sector_count();
 uint32_t get_first_fat_sector();
-uint8_t get_total_no_fat();
+uint8_t get_total_no_fat();             // Total number FATs present i.e. 2
 
 
 uint32_t get_first_sector_of_cluster(uint32_t cluster_number);  // Get First Sector of the given cluster
