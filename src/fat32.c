@@ -20,14 +20,15 @@ bool fat32_change_current_directory( const char *path)
     uint32_t current;
 
     /* absolute path */
-    if (path[0] == '/')
-        current = bpb->BPB_RootClus;
-    else
+    if (path[0] == '/'){
+        current = get_root_dir_cluster();
+    }else{
         current = fat32_cwd_cluster;
+    }
 
     /* root */
     if (strcmp(path, "/") == 0) {
-        fat32_cwd_cluster = bpb->BPB_RootClus;
+        fat32_cwd_cluster = get_root_dir_cluster();;
         return true;
     }
 
@@ -91,7 +92,7 @@ bool fat32_mkdir( const char* dirpath) {
     }
     else if (last_slash == path_copy) {
         // parent is root
-        parent_cluster = bpb->BPB_RootClus;
+        parent_cluster = get_root_dir_cluster();
         dirname = last_slash + 1;
     }
     else {
@@ -144,7 +145,7 @@ bool fat32_open( const char *path, FAT32_FILE *file)
         parent_cluster = fat32_cwd_cluster;
         filename = tmp;
     } else if (last == tmp) {
-        parent_cluster = bpb->BPB_RootClus;
+        parent_cluster = get_root_dir_cluster();;
         filename = last + 1;
     } else {
         *last = '\0';

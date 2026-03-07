@@ -182,7 +182,7 @@ bool fat32_read_cluster(uint32_t cluster_number, void *buffer){
 {
     uint32_t total_clusters = get_total_clusters();
 
-    for (uint32_t cluster = fat32_free_cluster_no; cluster < total_clusters + 2; cluster++)
+    for (uint32_t cluster = fat32_free_cluster_no; cluster < total_clusters + 1; cluster++)
     {
         uint32_t fat_offset = cluster * 4;  // Each entry is 4 bytes
         uint32_t fat_sector_number = get_first_fat_sector() + (fat_offset / get_bytes_per_sector());
@@ -924,7 +924,34 @@ bool fat32_path_to_cluster( const char *path, uint32_t *out_cluster)
 
 
 
+bool fat32_split_path(const char *path, uint32_t *parent_cluster, char *name)
+{
+    if (!path || !parent_cluster || !name)
+        return false;
 
+    char tmp[256];
+    strcpy(tmp, path);
+
+    char *last = strrchr(tmp, '/');
+
+    if (!last) {
+        *parent_cluster = fat32_cwd_cluster;
+        strcpy(name, tmp);
+    }
+    else if (last == tmp) {
+        *parent_cluster = get_root_dir_cluster();
+        strcpy(name, last + 1);
+    }
+    else {
+        *last = '\0';
+        strcpy(name, last + 1);
+
+        if (!fat32_path_to_cluster(tmp, parent_cluster))
+            return false;
+    }
+
+    return true;
+}
 
 
 

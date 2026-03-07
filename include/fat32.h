@@ -9,11 +9,38 @@
 
 typedef struct {
     uint32_t first_cluster;     // First Cluster number
+    uint32_t current_cluster;   // cluster currently reading/writing
     uint32_t size;              // file size
     uint32_t pos;               // pointer position
+
     uint32_t parent_cluster;    // Parent Directory cluster
-    char name[11];              // 8.3 Name
+
+    uint32_t dir_entry_sector;  // sector containing the entry
+    uint32_t dir_entry_offset;  // offset inside sector
+
+    char name[256];             // Long Name
+    uint8_t mode;               // read/write flags
 } FAT32_FILE;                   // 104 bytes
+
+
+typedef struct {
+    uint32_t first_cluster;     // First Cluster Number 
+    uint32_t current_cluster;
+
+    uint32_t pos;
+
+    uint32_t parent_cluster;    // Parent Cluster of this directory entry
+
+    char name[256];             // Directory long name
+} FAT32_DIR;
+
+// Directory Entry Info Structure
+typedef struct {
+    char name[256];
+    uint8_t attr;
+    uint32_t size;
+    uint32_t first_cluster;
+} FAT32_DIRENT;
 
 
 bool create_fat32_volume( uint64_t start_lba, uint32_t sectors); // defined in fat32_mount.c

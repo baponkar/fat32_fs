@@ -10,7 +10,11 @@
 #include "../include/gpt.h"
 #include "../include/partition_manager.h"
 
+#include "../include/dir_manager.h"
+
 #include "../test/fat32_test_1.h"
+
+
 
 #define PDRV_NO 0
 
@@ -114,6 +118,8 @@ bool fat32_test(){
     printf("[FAT32 TEST] File content: %s\n", buffer);
 
     free(buffer);
+
+    fat32_test_dir_manager();
 
     return true;
 }
