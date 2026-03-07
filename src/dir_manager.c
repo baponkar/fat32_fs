@@ -11,6 +11,9 @@
 #include "../include/dir_manager.h"
 
 extern uint32_t fat32_cwd_cluster;
+char fat32_cwd_path[256];
+
+
 
 bool f_cwd(char *path){
 
@@ -213,6 +216,7 @@ bool f_readdir(FAT32_DIR *dp, FAT32_DIRENT *entry)
     free(cluster_buf);
     return false;
 }
+
 
 bool f_mkdir(const char *path)
 {
@@ -471,4 +475,39 @@ void fat32_test_dir_manager()
     printf("\n===== FAT32 TEST END =====\n");
 }
 
+bool f_chdir(const char *path)
+{
+    if (!path)
+        return false;
 
+    uint32_t cluster;
+
+    /* resolve path */
+    if (!fat32_path_to_cluster(path, &cluster))
+        return false;
+
+    /* check that target is a directory */
+    if (cluster == 0)
+        return false;
+
+    fat32_cwd_cluster = cluster;
+
+    return true;
+}
+
+
+
+char* f_getcwd(char *buff, uint32_t size)
+{
+    if (!buff || size == 0)
+        return NULL;
+
+    size_t len = strlen(fat32_cwd_path);
+
+    if (len + 1 > size)
+        return NULL;
+
+    strcpy(buff, fat32_cwd_path);
+
+    return buff;
+}

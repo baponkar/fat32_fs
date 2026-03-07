@@ -11,6 +11,7 @@
 #include "../include/partition_manager.h"
 
 #include "../include/dir_manager.h"
+#include "../include/file_manager.h"
 
 #include "../test/fat32_test_1.h"
 
@@ -119,7 +120,9 @@ bool fat32_test(){
 
     free(buffer);
 
-    fat32_test_dir_manager();
+    // fat32_test_dir_manager();
+
+    file_test_func();
 
     return true;
 }

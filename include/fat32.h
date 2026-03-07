@@ -22,6 +22,13 @@ typedef struct {
     uint8_t mode;               // read/write flags
 } FAT32_FILE;                   // 104 bytes
 
+typedef struct {
+    char name[256];
+    uint8_t attr;
+    uint32_t size;
+    uint32_t first_cluster;
+} FAT32_STAT;
+
 
 typedef struct {
     uint32_t first_cluster;     // First Cluster Number 
