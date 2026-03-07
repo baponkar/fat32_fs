@@ -4,12 +4,34 @@
 #include <stddef.h>
 #include <stddef.h>
 
-#include "fat32.h"
+
 
 #define FA_READ     0x01
 #define FA_WRITE    0x02
 #define FA_CREATE   0x04
 #define FA_CREATE_ALWAYS 0x08
+
+typedef struct {
+    uint32_t first_cluster;     // First Cluster number
+    uint32_t current_cluster;   // cluster currently reading/writing
+    uint32_t size;              // file size
+    uint32_t pos;               // pointer position
+
+    uint32_t parent_cluster;    // Parent Directory cluster
+
+    uint32_t dir_entry_sector;  // sector containing the entry
+    uint32_t dir_entry_offset;  // offset inside sector
+
+    char name[256];             // Long Name
+    uint8_t mode;               // read/write flags
+} FAT32_FILE;                   // 104 bytes
+
+typedef struct {
+    char name[256];
+    uint8_t attr;
+    uint32_t size;
+    uint32_t first_cluster;
+} FAT32_STAT;
 
 
 
@@ -34,4 +56,3 @@ bool f_unlink(const char *path);
 
 
 
-void file_test_func();

@@ -319,6 +319,45 @@ bool f_rename(const char *oldpath, const char *newpath)
     return true;
 }
 
+bool f_chdir(const char *path)
+{
+    if (!path)
+        return false;
+
+    uint32_t cluster;
+
+    /* resolve path */
+    if (!fat32_path_to_cluster(path, &cluster))
+        return false;
+
+    /* check that target is a directory */
+    if (cluster == 0)
+        return false;
+
+    fat32_cwd_cluster = cluster;
+
+    return true;
+}
+
+
+
+char* f_getcwd(char *buff, uint32_t size)
+{
+    if (!buff || size == 0)
+        return NULL;
+
+    size_t len = strlen(fat32_cwd_path);
+
+    if (len + 1 > size)
+        return NULL;
+
+    strcpy(buff, fat32_cwd_path);
+
+    return buff;
+}
+
+
+
 static bool fat32_match_pattern(const char *pattern, const char *name)
 {
     while (*pattern && *name) {
@@ -386,128 +425,3 @@ bool f_findnext(FAT32_DIR *dp, FAT32_DIRENT *entry,  const char *pattern)
 
 
 
-void fat32_test_dir_manager()
-{
-    FAT32_DIR dir;
-    FAT32_DIRENT entry;
-
-    printf("\n===== FAT32 TEST START =====\n");
-
-    /* change directory to root */
-    if (f_cwd("/"))
-        printf("[OK] cwd -> /\n");
-    else
-        printf("[FAIL] cwd root\n");
-
-
-    /* create directories */
-    if (f_mkdir("/test"))
-        printf("[OK] mkdir /test\n");
-    else
-        printf("[FAIL] mkdir /test (maybe exists)\n");
-
-    if (f_mkdir("/test/subdir"))
-        printf("[OK] mkdir /test/subdir\n");
-    else
-        printf("[FAIL] mkdir /test/subdir\n");
-
-
-    /* open directory */
-    if (f_opendir(&dir, "/test"))
-        printf("[OK] opendir /test\n");
-    else
-        printf("[FAIL] opendir /test\n");
-
-
-    /* list directory */
-    printf("\nListing /test directory:\n");
-
-    while (f_readdir(&dir, &entry))
-    {
-        printf("  name:%s  size:%u  cluster:%u  attr:%02X\n",
-               entry.name,
-               entry.size,
-               entry.first_cluster,
-               entry.attr);
-    }
-
-    f_closedir(&dir);
-
-
-    /* rename directory */
-    if (f_rename("/test/subdir", "/test/subdir2"))
-        printf("[OK] rename subdir -> subdir2\n");
-    else
-        printf("[FAIL] rename directory\n");
-
-
-    /* open directory again */
-    if (f_opendir(&dir, "/test"))
-    {
-        printf("\nListing /test after rename:\n");
-
-        while (f_readdir(&dir, &entry))
-        {
-            printf("  %s\n", entry.name);
-        }
-
-        f_closedir(&dir);
-    }
-
-
-    /* pattern search */
-    printf("\nTesting findfirst/findnext (*.TXT):\n");
-
-    if (f_findfirst(&dir, &entry, "/", "*.TXT"))
-    {
-        do {
-            printf("  found: %s\n", entry.name);
-        }
-        while (f_findnext(&dir, &entry, "*.TXT"));
-
-        f_closedir(&dir);
-    }
-    else
-    {
-        printf("  no TXT files found\n");
-    }
-
-    printf("\n===== FAT32 TEST END =====\n");
-}
-
-bool f_chdir(const char *path)
-{
-    if (!path)
-        return false;
-
-    uint32_t cluster;
-
-    /* resolve path */
-    if (!fat32_path_to_cluster(path, &cluster))
-        return false;
-
-    /* check that target is a directory */
-    if (cluster == 0)
-        return false;
-
-    fat32_cwd_cluster = cluster;
-
-    return true;
-}
-
-
-
-char* f_getcwd(char *buff, uint32_t size)
-{
-    if (!buff || size == 0)
-        return NULL;
-
-    size_t len = strlen(fat32_cwd_path);
-
-    if (len + 1 > size)
-        return NULL;
-
-    strcpy(buff, fat32_cwd_path);
-
-    return buff;
-}
