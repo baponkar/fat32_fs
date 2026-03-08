@@ -802,9 +802,10 @@ bool f_unlink(const char *path)
 }
 
 
-void file_test_func()
+int f_error(FAT32_FILE *fp)
 {
-    
+    if (!fp)
+        return -1;
 
-    printf("\n===== FILE TEST END =====\n");
+    return fp->error;
 }
