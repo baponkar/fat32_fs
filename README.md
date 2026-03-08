@@ -59,7 +59,7 @@ gdisk -l disk_img/disk.img
 sudo losetup -fP --show disk_img/disk.img 
 
 # if giving output
-/dev/loop1
+/dev/loop0
 
 # Check FAT Partition 
 sudo fsck.fat -v -n /dev/loop0p1
@@ -76,16 +76,16 @@ cat disk_img/mnt/mylongtestdir/mylongtestfile.text
 # More Debug functions
 
 # Check MBR LBA0
-hexdump -C -n 512 disk_img/disk_1.img
+hexdump -C -n 512 disk_img/disk.img
 
 # Check GPT Header LAA1
-hexdump -C -s 512 -n 92 disk_img/disk_1.img
+hexdump -C -s 512 -n 92 disk_img/disk.img
 
 # Check GPT Partition Table LBA2
-hexdump -C -s 1024 -n 512 disk_img/disk_1.img
+hexdump -C -s 1024 -n 512 disk_img/disk.img
 
 # Unmount the disk.img
-sudo umount /mnt
+sudo umount disk_img/mnt
 
 # Remove specific loop device
 sudo losetup -d /dev/loop0
@@ -93,7 +93,14 @@ sudo losetup -d /dev/loop0
 # Remove all loop device
 sudo losetup -D
 
+# Verify by see all loop device
+losetup -a
+
 ```
+
+We can also inspect the disk.img by GUI interface by using following:
+1. [WinImage](https://winimage.com/download.htm)
+2. [OSFMount](https://www.osforensics.com/tools/mount-disk-images.html)
 
 Reference:
 
