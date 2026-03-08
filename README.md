@@ -3,7 +3,7 @@
 
 ![FAT32 FILESYSTEM IMAGE](./img/social_image.png)
 
-# FAT32 Filesystem
+# FAT32 Filesystem with GPT 
 
 ## Description
 ---
